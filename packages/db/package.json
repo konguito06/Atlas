@@ -8,11 +8,15 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "generate": "drizzle-kit generate"
+    "generate": "drizzle-kit generate",
+    "test:integration": "vitest run"
   },
   "devDependencies": {
+    "@supabase/supabase-js": "^2.119.0",
+    "@types/node": "^26.6.6",
     "drizzle-kit": "^0.31.11",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "^5.1.0"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.4"
