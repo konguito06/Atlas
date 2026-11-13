@@ -1,0 +1,11 @@
+packages:
+  - apps/*
+  - packages/*
+
+# Versions every workspace must agree on. React and TypeScript follow the
+# Expo SDK pins: Expo fails at runtime when two copies of React are installed.
+catalog:
+  react: 19.3.0
+  react-dom: 19.3.0
+  "@types/react": ~19.3.0
+  typescript: ~6.0.3
