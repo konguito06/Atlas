@@ -29,6 +29,20 @@
       "when": 1794598738878,
       "tag": "20261113193859_personal_workspace_and_content_access",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794599273745,
+      "tag": "20261113194753_add_deadlines_and_timetables",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794599275403,
+      "tag": "20261113194755_deadline_and_timetable_access",
+      "breakpoints": true
     }
   ]
 }

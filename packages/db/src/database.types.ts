@@ -5,7 +5,27 @@ export type Database = {
   
   "public": {
           Tables: {
-            "documents": {
+            "deadlines": {
+                  Row: {
+                    "completed": boolean,"created_at": string,"created_by": string | null,"due_date": string,"due_time": string | null,"id": string,"title": string,"updated_at": string,"workspace_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "completed"?: boolean,"created_at"?: string,"created_by"?: string | null,"due_date": string,"due_time"?: string | null,"id"?: string,"title": string,"updated_at"?: string,"workspace_id": string
+                  }
+                  Update: {
+                    "completed"?: boolean,"created_at"?: string,"created_by"?: string | null,"due_date"?: string,"due_time"?: string | null,"id"?: string,"title"?: string,"updated_at"?: string,"workspace_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "deadlines_workspace_id_workspaces_id_fk"
+      columns: ["workspace_id"]
+isOneToOne: false
+      referencedRelation: "workspaces"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"documents": {
                   Row: {
                     "content": NonNullable<Json>,"created_at": string,"created_by": string | null,"id": string,"title": string,"updated_at": string,"workspace_id": string
                   }
@@ -19,6 +39,46 @@ export type Database = {
                   Relationships: [
                     {
       foreignKeyName: "documents_workspace_id_workspaces_id_fk"
+      columns: ["workspace_id"]
+isOneToOne: false
+      referencedRelation: "workspaces"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"timetable_entries": {
+                  Row: {
+                    "color": string,"created_at": string,"day": number,"end_minute": number,"id": string,"location": string,"start_minute": number,"timetable_id": string,"title": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "color"?: string,"created_at"?: string,"day": number,"end_minute": number,"id"?: string,"location"?: string,"start_minute": number,"timetable_id": string,"title": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "color"?: string,"created_at"?: string,"day"?: number,"end_minute"?: number,"id"?: string,"location"?: string,"start_minute"?: number,"timetable_id"?: string,"title"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "timetable_entries_timetable_id_timetables_id_fk"
+      columns: ["timetable_id"]
+isOneToOne: false
+      referencedRelation: "timetables"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"timetables": {
+                  Row: {
+                    "created_at": string,"created_by": string | null,"days": (number)[],"end_hour": number,"id": string,"name": string,"start_hour": number,"updated_at": string,"workspace_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string | null,"days"?: (number)[],"end_hour"?: number,"id"?: string,"name": string,"start_hour"?: number,"updated_at"?: string,"workspace_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string | null,"days"?: (number)[],"end_hour"?: number,"id"?: string,"name"?: string,"start_hour"?: number,"updated_at"?: string,"workspace_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "timetables_workspace_id_workspaces_id_fk"
       columns: ["workspace_id"]
 isOneToOne: false
       referencedRelation: "workspaces"
