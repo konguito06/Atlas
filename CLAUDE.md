@@ -8,7 +8,9 @@ ATLAS is a cross-platform productivity app for macOS (desktop), iPhone and iPad.
 
 Current focus: build each feature on desktop first. Mobile gets the feature afterwards, so keep logic in shared packages and do not touch `apps/mobile` unless asked.
 
-What exists: the database (workspaces, members, documents) with its access rules, sign-in by emailed six-digit code in shared code, and the desktop sign-in screen. Mobile is still an empty shell. There is no document UI, editor, sync or AI code.
+What exists: the database (workspaces, members, documents) with its access rules, sign-in by emailed six-digit code, the document format, and on desktop the sign-in screen and document list (create, rename, delete, open). Mobile is still an empty shell. There is no editor, sync or AI code.
+
+Architectural decisions are recorded in `docs/decisions/`. Read the relevant one before changing what it covers, and add a new record when a decision changes.
 
 - `apps/desktop` (`@atlas/desktop`): Tauri 2, React, Vite, Tailwind 4, shadcn/ui
 - `apps/mobile` (`@atlas/mobile`): Expo SDK 58, Expo Router, NativeWind 4 (Tailwind 3)
@@ -42,7 +44,8 @@ pnpm db:stop
 pnpm db:reset      # rebuild the local database from supabase/migrations
 pnpm db:generate --name=<change>            # migration from schema.ts changes
 pnpm db:generate --custom --name=<change>   # empty migration for hand-written SQL
-pnpm db:test       # access-rule tests; needs db:start, not part of pnpm test
+pnpm db:types      # regenerate packages/db/src/database.types.ts
+pnpm db:test       # tests that need the database; needs db:start, not part of pnpm test
 
 # One test file
 pnpm --filter @atlas/desktop exec vitest run src/App.test.tsx
@@ -63,10 +66,13 @@ If `cargo` is not found, prefix the command with `PATH="/opt/homebrew/opt/rustup
 - Add shadcn components with `pnpm dlx shadcn@latest add <name>` from `apps/desktop`, then `pnpm install` (it does not always add their dependencies).
 - The desktop app reads the Supabase address and publishable key from `apps/desktop/.env.local` (see `.env.example`; values come from `pnpm exec supabase status`).
 - Desktop code is grouped by feature in `apps/desktop/src/features/<feature>`. Screens take the Supabase client as a prop, so tests pass a fake one.
-- Shared React hooks live in `@atlas/core`, which lists React as a peer dependency.
+- Shared React hooks live in `@atlas/core`, which lists React and TanStack Query as peer dependencies.
+- Screens read and write through the `AtlasData` interface from `@atlas/core`, never through the Supabase client directly. Desktop tests use the in-memory fakes in `apps/desktop/src/test/fakes.tsx`.
+- In `packages/core`, unit tests sit next to the code in `src/` (`pnpm test`); tests that need the local database live in `tests/` (`pnpm db:test`).
 
 ## Database
 
+- After any schema change run `pnpm db:reset` and `pnpm db:types`. Two migrations generated in the same second get the same timestamp: rename the second file and its `tag` in `supabase/migrations/meta/_journal.json`.
 - Tables and columns are defined in `packages/db/src/schema.ts`. Policies, grants, functions and triggers are hand-written SQL migrations. Never edit a migration that has been applied; add a new one.
 - Access is deny-by-default. A new table or column is unusable by clients until a migration grants the privilege (inserts and updates are granted per column) and a policy allows the row.
 - Every change to access rules needs a test in `packages/db/tests/rls.test.ts`, run with `pnpm db:test`.
