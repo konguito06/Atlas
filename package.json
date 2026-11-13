@@ -14,7 +14,8 @@
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
     "db:generate": "pnpm --filter @atlas/db generate",
-    "db:test": "pnpm --filter @atlas/db test:integration"
+    "db:test": "pnpm -r --if-present run test:integration",
+    "db:types": "supabase gen types typescript --local --schema public > packages/db/src/database.types.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.6.7",

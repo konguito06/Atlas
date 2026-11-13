@@ -7,7 +7,12 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "includes": ["**", "!**/src-tauri/gen", "!supabase/migrations/meta"]
+    "includes": [
+      "**",
+      "!**/src-tauri/gen",
+      "!supabase/migrations/meta",
+      "!packages/db/src/database.types.ts"
+    ]
   },
   "formatter": {
     "enabled": true,
