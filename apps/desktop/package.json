@@ -1,0 +1,25 @@
+{
+  "name": "@atlas/desktop",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@atlas/core": "workspace:*",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.12.4",
+    "@types/react": "catalog:",
+    "@types/react-dom": "~19.3.0",
+    "@vitejs/plugin-react": "^6.3.0",
+    "typescript": "catalog:",
+    "vite": "^8.3.8"
+  }
+}
