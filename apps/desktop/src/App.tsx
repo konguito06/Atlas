@@ -1,12 +1,17 @@
-import { APP_NAME } from "@atlas/core";
+import { type AtlasClient, useSession } from "@atlas/core";
+import { SignInScreen } from "@/features/auth/sign-in-screen";
+import { HomeScreen } from "@/features/home/home-screen";
 
-export function App() {
-  return (
-    <main className="flex min-h-svh flex-col items-center justify-center gap-2">
-      <h1 className="font-heading text-3xl font-semibold tracking-tight">
-        {APP_NAME}
-      </h1>
-      <p className="text-muted-foreground text-sm">Nothing here yet.</p>
-    </main>
-  );
+export function App({ client }: { client: AtlasClient }) {
+  const session = useSession(client);
+
+  // Render nothing while the stored session is read, to avoid flashing the
+  // sign-in form at someone who is already signed in.
+  if (session.status === "loading") {
+    return null;
+  }
+  if (session.status === "signed-out") {
+    return <SignInScreen client={client} />;
+  }
+  return <HomeScreen client={client} email={session.email} />;
 }
