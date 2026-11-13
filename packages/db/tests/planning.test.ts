@@ -152,13 +152,11 @@ describe("a user outside the workspace", () => {
   );
 
   test("cannot add a deadline or a timetable to the workspace", async () => {
-    const deadline = await outsider.client
-      .from("deadlines")
-      .insert({
-        workspace_id: workspaceId,
-        title: "Sneak",
-        due_date: "2026-12-01",
-      });
+    const deadline = await outsider.client.from("deadlines").insert({
+      workspace_id: workspaceId,
+      title: "Sneak",
+      due_date: "2026-12-01",
+    });
     const timetable = await outsider.client
       .from("timetables")
       .insert({ workspace_id: workspaceId, name: "Sneak" });
