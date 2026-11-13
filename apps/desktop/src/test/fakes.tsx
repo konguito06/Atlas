@@ -1,4 +1,11 @@
-import type { AtlasClient, AtlasData, DocumentSummary } from "@atlas/core";
+import type {
+  AtlasClient,
+  AtlasData,
+  Deadline,
+  DocumentSummary,
+  Timetable,
+  TimetableEntry,
+} from "@atlas/core";
 import { QueryClient } from "@tanstack/react-query";
 import { render } from "@testing-library/react";
 import { vi } from "vitest";
@@ -52,12 +59,22 @@ export function documentNamed(title: string, id = title): DocumentSummary {
   };
 }
 
-/** Keeps documents in memory. `failing` makes the named operations reject. */
-export function createFakeData(
-  initial: DocumentSummary[] = [],
-  failing: Array<"list" | "rename"> = [],
-): AtlasData {
-  let documents = [...initial];
+interface FakeSeed {
+  documents?: DocumentSummary[];
+  deadlines?: Deadline[];
+  timetables?: Timetable[];
+  entries?: TimetableEntry[];
+  /** Operations that should reject, to exercise error states. */
+  failing?: Array<"list" | "rename" | "saveDeadline" | "saveEntry">;
+}
+
+/** Keeps everything in memory, behaving like the real data layer. */
+export function createFakeData(seed: FakeSeed = {}): AtlasData {
+  let documents = [...(seed.documents ?? [])];
+  let deadlines = [...(seed.deadlines ?? [])];
+  let timetables = [...(seed.timetables ?? [])];
+  let entries = [...(seed.entries ?? [])];
+  const failing = seed.failing ?? [];
 
   return {
     listWorkspaces: async () => [{ id: "workspace-1", name: "Personal" }],
@@ -84,6 +101,70 @@ export function createFakeData(
     },
     deleteDocument: async (id) => {
       documents = documents.filter((document) => document.id !== id);
+    },
+
+    listDeadlines: async () => deadlines,
+    createDeadline: async ({ id, title, dueDate, dueTime }) => {
+      if (failing.includes("saveDeadline")) {
+        throw new Error("Could not add the deadline.");
+      }
+      const created = { id, title, dueDate, dueTime, completed: false };
+      deadlines = [...deadlines, created];
+      return created;
+    },
+    updateDeadline: async (id, change) => {
+      if (failing.includes("saveDeadline")) {
+        throw new Error("Could not save the deadline.");
+      }
+      const current = deadlines.find((deadline) => deadline.id === id);
+      if (!current) throw new Error("Could not save the deadline.");
+      const saved = { ...current, ...change };
+      deadlines = deadlines.map((deadline) =>
+        deadline.id === id ? saved : deadline,
+      );
+      return saved;
+    },
+    deleteDeadline: async (id) => {
+      deadlines = deadlines.filter((deadline) => deadline.id !== id);
+    },
+
+    listTimetables: async () => timetables,
+    createTimetable: async ({ id, workspaceId: _workspaceId, ...settings }) => {
+      const created = { id, ...settings };
+      timetables = [...timetables, created];
+      return created;
+    },
+    updateTimetable: async (id, settings) => {
+      const saved = { id, ...settings };
+      timetables = timetables.map((timetable) =>
+        timetable.id === id ? saved : timetable,
+      );
+      return saved;
+    },
+    deleteTimetable: async (id) => {
+      timetables = timetables.filter((timetable) => timetable.id !== id);
+      entries = entries.filter((entry) => entry.timetableId !== id);
+    },
+    listTimetableEntries: async (timetableId) =>
+      entries.filter((entry) => entry.timetableId === timetableId),
+    createTimetableEntry: async (entry) => {
+      if (failing.includes("saveEntry")) {
+        throw new Error("Could not add the entry.");
+      }
+      entries = [...entries, entry];
+      return entry;
+    },
+    updateTimetableEntry: async (id, draft) => {
+      const current = entries.find((entry) => entry.id === id);
+      if (!current || failing.includes("saveEntry")) {
+        throw new Error("Could not save the entry.");
+      }
+      const saved = { ...current, ...draft };
+      entries = entries.map((entry) => (entry.id === id ? saved : entry));
+      return saved;
+    },
+    deleteTimetableEntry: async (id) => {
+      entries = entries.filter((entry) => entry.id !== id);
     },
   };
 }

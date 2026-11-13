@@ -15,7 +15,9 @@ function titleInput() {
 
 test("lists the workspace's documents and opens the newest one", async () => {
   renderSignedIn(
-    createFakeData([documentNamed("Trip plan"), documentNamed("Reading list")]),
+    createFakeData({
+      documents: [documentNamed("Trip plan"), documentNamed("Reading list")],
+    }),
   );
 
   await screen.findByRole("button", { name: "Trip plan" });
@@ -34,7 +36,7 @@ test("an empty workspace invites the person to create a document", async () => {
 });
 
 test("a new document opens at the top of the list, ready to be named", async () => {
-  renderSignedIn(createFakeData([documentNamed("Trip plan")]));
+  renderSignedIn(createFakeData({ documents: [documentNamed("Trip plan")] }));
   await screen.findByRole("button", { name: "Trip plan" });
 
   fireEvent.click(screen.getByRole("button", { name: "New document" }));
@@ -48,7 +50,9 @@ test("a new document opens at the top of the list, ready to be named", async () 
 
 test("opening another document shows its title", async () => {
   renderSignedIn(
-    createFakeData([documentNamed("Trip plan"), documentNamed("Reading list")]),
+    createFakeData({
+      documents: [documentNamed("Trip plan"), documentNamed("Reading list")],
+    }),
   );
 
   fireEvent.click(await screen.findByRole("button", { name: "Reading list" }));
@@ -62,7 +66,7 @@ test("opening another document shows its title", async () => {
 });
 
 test("renaming a document updates the list", async () => {
-  renderSignedIn(createFakeData([documentNamed("Trip plan")]));
+  renderSignedIn(createFakeData({ documents: [documentNamed("Trip plan")] }));
   await screen.findByRole("button", { name: "Trip plan" });
 
   fireEvent.change(titleInput(), { target: { value: "Lisbon trip" } });
@@ -72,7 +76,12 @@ test("renaming a document updates the list", async () => {
 });
 
 test("a rename that fails says so and puts the old title back in the list", async () => {
-  renderSignedIn(createFakeData([documentNamed("Trip plan")], ["rename"]));
+  renderSignedIn(
+    createFakeData({
+      documents: [documentNamed("Trip plan")],
+      failing: ["rename"],
+    }),
+  );
   await screen.findByRole("button", { name: "Trip plan" });
 
   fireEvent.change(titleInput(), { target: { value: "Lisbon trip" } });
@@ -84,7 +93,7 @@ test("a rename that fails says so and puts the old title back in the list", asyn
 });
 
 test("deleting asks first, and cancelling keeps the document", async () => {
-  renderSignedIn(createFakeData([documentNamed("Trip plan")]));
+  renderSignedIn(createFakeData({ documents: [documentNamed("Trip plan")] }));
   await screen.findByRole("button", { name: "Trip plan" });
 
   fireEvent.click(screen.getByRole("button", { name: "Delete" }));
@@ -96,7 +105,9 @@ test("deleting asks first, and cancelling keeps the document", async () => {
 
 test("confirming a delete removes the document and opens the next one", async () => {
   renderSignedIn(
-    createFakeData([documentNamed("Trip plan"), documentNamed("Reading list")]),
+    createFakeData({
+      documents: [documentNamed("Trip plan"), documentNamed("Reading list")],
+    }),
   );
   await screen.findByRole("button", { name: "Trip plan" });
 
@@ -108,7 +119,7 @@ test("confirming a delete removes the document and opens the next one", async ()
 });
 
 test("a failed load explains itself and offers a retry", async () => {
-  renderSignedIn(createFakeData([], ["list"]));
+  renderSignedIn(createFakeData({ documents: [], failing: ["list"] }));
 
   expect(
     await screen.findByText("Could not load your documents."),

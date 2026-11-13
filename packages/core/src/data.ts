@@ -1,4 +1,6 @@
+import { createDeadlinesData, type DeadlinesData } from "./deadlines";
 import type { AtlasClient } from "./supabase";
+import { createTimetablesData, type TimetablesData } from "./timetables";
 
 export const DOCUMENT_TITLE_MAX_LENGTH = 300;
 
@@ -19,7 +21,7 @@ export interface DocumentSummary {
  * Everything the apps read and write. Screens depend on this interface, so
  * tests can swap in an in-memory version.
  */
-export interface AtlasData {
+export interface AtlasData extends DeadlinesData, TimetablesData {
   listWorkspaces(): Promise<Workspace[]>;
   /** Newest first. */
   listDocuments(workspaceId: string): Promise<DocumentSummary[]>;
@@ -52,6 +54,9 @@ function toSummary(row: SummaryRow): DocumentSummary {
 
 export function createAtlasData(client: AtlasClient): AtlasData {
   return {
+    ...createDeadlinesData(client),
+    ...createTimetablesData(client),
+
     async listWorkspaces() {
       const { data, error } = await client
         .from("workspaces")
