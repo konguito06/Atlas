@@ -76,6 +76,35 @@ afterAll(async () => {
   await Promise.all([owner, member, outsider].map(deleteUser));
 });
 
+describe("a new person", () => {
+  let person: TestUser;
+  let personalWorkspaceId: string;
+
+  test("starts with a personal workspace they own", async () => {
+    person = await createSignedInUser();
+
+    const workspaces = await person.client
+      .from("workspaces")
+      .select("id, name");
+    const memberships = await person.client
+      .from("workspace_members")
+      .select("user_id, role");
+
+    expect(workspaces.data).toHaveLength(1);
+    expect(workspaces.data?.[0]?.name).toBe("Personal");
+    expect(memberships.data).toEqual([{ user_id: person.id, role: "owner" }]);
+    personalWorkspaceId = workspaces.data?.[0]?.id;
+  });
+
+  test("takes that workspace with them when the account is deleted", async () => {
+    expect(await storedWorkspaceName(personalWorkspaceId)).toBe("Personal");
+
+    await deleteUser(person);
+
+    expect(await storedWorkspaceName(personalWorkspaceId)).toBeUndefined();
+  });
+});
+
 describe("the owner of a workspace", () => {
   test("is recorded as its owner when creating it", async () => {
     const { data, error } = await owner.client
@@ -138,6 +167,26 @@ describe("a member who is not the owner", () => {
     );
   });
 
+  test("can save document content", async () => {
+    const content = {
+      version: 1,
+      type: "doc",
+      content: [
+        { type: "paragraph", content: [{ type: "text", text: "Hello" }] },
+      ],
+    };
+
+    const { data, error } = await member.client
+      .from("documents")
+      .update({ content })
+      .eq("id", documentId)
+      .select("content")
+      .single();
+
+    expect(error).toBeNull();
+    expect(data?.content).toEqual(content);
+  });
+
   test("cannot rename the workspace", async () => {
     const before = await storedWorkspaceName(workspaceId);
     const { data } = await member.client
@@ -192,11 +241,13 @@ describe("a user outside the workspace", () => {
     expect(documents.data).toEqual([]);
   });
 
-  test("sees nothing when listing everything", async () => {
-    const workspaces = await outsider.client.from("workspaces").select();
+  test("sees only their own workspaces when listing everything", async () => {
+    const workspaces = await outsider.client.from("workspaces").select("id");
     const documents = await outsider.client.from("documents").select();
 
-    expect(workspaces.data).toEqual([]);
+    expect(workspaces.data?.map((workspace) => workspace.id)).not.toContain(
+      workspaceId,
+    );
     expect(documents.data).toEqual([]);
   });
 
@@ -317,6 +368,15 @@ describe("integrity rules that apply even to members", () => {
       .eq("id", documentId);
 
     expect(error?.code).toBe(INSUFFICIENT_PRIVILEGE);
+  });
+
+  test("document content cannot be a string of HTML", async () => {
+    const { error } = await owner.client
+      .from("documents")
+      .update({ content: "<p>Hello</p>" })
+      .eq("id", documentId);
+
+    expect(error?.code).toBe(CHECK_VIOLATION);
   });
 
   test("a workspace name cannot be blank", async () => {
