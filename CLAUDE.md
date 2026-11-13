@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ATLAS is a cross-platform productivity app for macOS (desktop), iPhone and iPad. Desktop and mobile are both first-class products.
 
+Current focus: build each feature on desktop first. Mobile gets the feature afterwards, so keep logic in shared packages and do not touch `apps/mobile` unless asked.
+
 Only the foundation exists so far: two empty app shells and one shared package. There is no backend, editor, sync or AI code yet.
 
 - `apps/desktop` (`@atlas/desktop`): Tauri 2, React, Vite, Tailwind 4, shadcn/ui
@@ -71,7 +73,7 @@ Work incrementally: one feature at a time, never every feature at once. For each
 3. Define the data model.
 4. Design the API.
 5. Implement it.
-6. Test both desktop and mobile behavior.
+6. Test desktop behavior, and mobile behavior once the feature exists there.
 7. Verify synchronization and security.
 
 Update the documentation whenever an architectural decision changes.
