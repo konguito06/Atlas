@@ -10,7 +10,8 @@ catalog:
   "@types/react": ~19.3.0
   typescript: ~6.0.3
 
-# Install scripts are blocked unless listed here. @parcel/watcher (pulled in by
-# Jest) ships prebuilt binaries, so its fallback native build stays off.
+# Install scripts are blocked unless listed here. These packages ship prebuilt
+# binaries, so their install scripts stay off.
 allowBuilds:
   "@parcel/watcher": false
+  esbuild: false

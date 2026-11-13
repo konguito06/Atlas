@@ -7,7 +7,7 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "includes": ["**", "!**/src-tauri/gen"]
+    "includes": ["**", "!**/src-tauri/gen", "!supabase/migrations/meta"]
   },
   "formatter": {
     "enabled": true,
