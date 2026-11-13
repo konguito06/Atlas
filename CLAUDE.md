@@ -8,7 +8,7 @@ ATLAS is a cross-platform productivity app for macOS (desktop), iPhone and iPad.
 
 Current focus: build each feature on desktop first. Mobile gets the feature afterwards, so keep logic in shared packages and do not touch `apps/mobile` unless asked.
 
-What exists: two empty app shells, one shared package, and the database (workspaces, members, documents) with its access rules. The apps do not talk to the database yet. There is no sign-in, editor, sync or AI code.
+What exists: the database (workspaces, members, documents) with its access rules, sign-in by emailed six-digit code in shared code, and the desktop sign-in screen. Mobile is still an empty shell. There is no document UI, editor, sync or AI code.
 
 - `apps/desktop` (`@atlas/desktop`): Tauri 2, React, Vite, Tailwind 4, shadcn/ui
 - `apps/mobile` (`@atlas/mobile`): Expo SDK 58, Expo Router, NativeWind 4 (Tailwind 3)
@@ -60,7 +60,10 @@ If `cargo` is not found, prefix the command with `PATH="/opt/homebrew/opt/rustup
 - `react-native-css-interop` is a direct dependency of mobile only because pnpm isolates packages. Keep its version equal to the one `nativewind` depends on.
 - Every file under `apps/mobile/src/app` becomes a route. Mobile tests live in `apps/mobile/src/__tests__`.
 - pnpm rejects package versions published in the last day and blocks install scripts. Pin the previous version, or decide the script in `allowBuilds`, rather than disabling the check.
-- Add shadcn components with `pnpm dlx shadcn@latest add <name>` from `apps/desktop`.
+- Add shadcn components with `pnpm dlx shadcn@latest add <name>` from `apps/desktop`, then `pnpm install` (it does not always add their dependencies).
+- The desktop app reads the Supabase address and publishable key from `apps/desktop/.env.local` (see `.env.example`; values come from `pnpm exec supabase status`).
+- Desktop code is grouped by feature in `apps/desktop/src/features/<feature>`. Screens take the Supabase client as a prop, so tests pass a fake one.
+- Shared React hooks live in `@atlas/core`, which lists React as a peer dependency.
 
 ## Database
 
