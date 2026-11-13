@@ -1,0 +1,19 @@
+{
+  "expo": {
+    "name": "ATLAS",
+    "slug": "atlas",
+    "version": "0.1.0",
+    "orientation": "default",
+    "scheme": "atlas",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "bundleIdentifier": "com.konguito06.atlas",
+      "supportsTablet": true
+    },
+    "plugins": ["expo-router"],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}
