@@ -1,0 +1,2 @@
+ALTER TABLE "documents" ADD COLUMN "content" jsonb DEFAULT '{"version":1,"type":"doc","content":[{"type":"paragraph"}]}'::jsonb NOT NULL;--> statement-breakpoint
+ALTER TABLE "documents" ADD CONSTRAINT "documents_content_shape" CHECK (jsonb_typeof("documents"."content") = 'object' and jsonb_typeof("documents"."content" -> 'version') = 'number');

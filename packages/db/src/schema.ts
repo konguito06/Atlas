@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   check,
   index,
+  jsonb,
   pgEnum,
   pgTable,
   primaryKey,
@@ -66,6 +67,12 @@ export const documents = pgTable(
       .notNull()
       .references(() => workspaces.id, { onDelete: "cascade" }),
     title: text().notNull().default(""),
+    // The document format from @atlas/core. The default is its empty document.
+    content: jsonb()
+      .notNull()
+      .default(
+        sql`'{"version":1,"type":"doc","content":[{"type":"paragraph"}]}'::jsonb`,
+      ),
     createdBy: uuid()
       .default(sql`auth.uid()`)
       .references(() => authUsers.id, { onDelete: "set null" }),
@@ -74,5 +81,11 @@ export const documents = pgTable(
   (table) => [
     index("documents_workspace_id_idx").on(table.workspaceId),
     check("documents_title_length", sql`char_length(${table.title}) <= 300`),
+    // Full validation happens in the apps; this only keeps out content that
+    // is not a versioned object, such as a string of HTML.
+    check(
+      "documents_content_shape",
+      sql`jsonb_typeof(${table.content}) = 'object' and jsonb_typeof(${table.content} -> 'version') = 'number'`,
+    ),
   ],
 ).enableRLS();

@@ -7,14 +7,14 @@ export type Database = {
           Tables: {
             "documents": {
                   Row: {
-                    "created_at": string,"created_by": string | null,"id": string,"title": string,"updated_at": string,"workspace_id": string
+                    "content": NonNullable<Json>,"created_at": string,"created_by": string | null,"id": string,"title": string,"updated_at": string,"workspace_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"created_by"?: string | null,"id"?: string,"title"?: string,"updated_at"?: string,"workspace_id": string
+                    "content"?: NonNullable<Json>,"created_at"?: string,"created_by"?: string | null,"id"?: string,"title"?: string,"updated_at"?: string,"workspace_id": string
                   }
                   Update: {
-                    "created_at"?: string,"created_by"?: string | null,"id"?: string,"title"?: string,"updated_at"?: string,"workspace_id"?: string
+                    "content"?: NonNullable<Json>,"created_at"?: string,"created_by"?: string | null,"id"?: string,"title"?: string,"updated_at"?: string,"workspace_id"?: string
                   }
                   Relationships: [
                     {

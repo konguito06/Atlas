@@ -15,6 +15,20 @@
       "when": 1794567929142,
       "tag": "20261113110529_row_level_security",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794598738551,
+      "tag": "20261113193858_add_document_content",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794598738878,
+      "tag": "20261113193859_personal_workspace_and_content_access",
+      "breakpoints": true
     }
   ]
 }
