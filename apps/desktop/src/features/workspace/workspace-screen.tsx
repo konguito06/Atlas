@@ -10,7 +10,9 @@ import {
 } from "@atlas/core";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { DeadlinesView } from "@/features/deadlines/deadlines-view";
 import { DocumentPane } from "@/features/documents/document-pane";
+import { TimetableView } from "@/features/timetable/timetable-view";
 import { cn } from "@/lib/utils";
 
 interface WorkspaceScreenProps {
@@ -49,6 +51,12 @@ export function WorkspaceScreen({ client, data, email }: WorkspaceScreenProps) {
   );
 }
 
+/** What the main pane shows. A document view may not name a document yet. */
+type View =
+  | { kind: "documents"; documentId?: string }
+  | { kind: "deadlines" }
+  | { kind: "timetable" };
+
 function WorkspaceLayout({
   client,
   data,
@@ -57,18 +65,21 @@ function WorkspaceLayout({
 }: WorkspaceScreenProps & { workspace: Workspace }) {
   const documents = useDocuments(data, workspace.id);
   const create = useCreateDocument(data, workspace.id);
-  const [selectedId, setSelectedId] = useState<string>();
+  const [view, setView] = useState<View>({ kind: "documents" });
   const [signOutError, setSignOutError] = useState<string>();
 
   // Falls back to the newest document, so something is open after a
   // delete and on first load.
   const selected =
-    documents.data?.find((document) => document.id === selectedId) ??
-    documents.data?.[0];
+    view.kind === "documents"
+      ? (documents.data?.find((document) => document.id === view.documentId) ??
+        documents.data?.[0])
+      : undefined;
 
   function createDocument() {
     create.mutate(crypto.randomUUID(), {
-      onSuccess: (created) => setSelectedId(created.id),
+      onSuccess: (created) =>
+        setView({ kind: "documents", documentId: created.id }),
     });
   }
 
@@ -85,7 +96,30 @@ function WorkspaceLayout({
         <div className="px-4 pt-5 pb-3">
           <p className="truncate font-heading text-lg">{workspace.name}</p>
         </div>
-        <div className="px-3">
+
+        <nav aria-label="Planning" className="px-3">
+          <ul className="grid gap-0.5">
+            <li>
+              <SidebarLink
+                selected={view.kind === "deadlines"}
+                onSelect={() => setView({ kind: "deadlines" })}
+              >
+                Deadlines
+              </SidebarLink>
+            </li>
+            <li>
+              <SidebarLink
+                selected={view.kind === "timetable"}
+                onSelect={() => setView({ kind: "timetable" })}
+              >
+                Timetable
+              </SidebarLink>
+            </li>
+          </ul>
+        </nav>
+
+        <div className="mt-5 px-3">
+          <p className="px-2 pb-1.5 text-xs text-muted-foreground">Documents</p>
           <Button
             variant="outline"
             className="w-full justify-start"
@@ -95,19 +129,22 @@ function WorkspaceLayout({
             New document
           </Button>
         </div>
-
         <nav
           aria-label="Documents"
-          className="mt-3 flex-1 overflow-y-auto px-3"
+          className="mt-2 flex-1 overflow-y-auto px-3"
         >
           <ul className="grid gap-0.5">
             {documents.data?.map((document) => (
               <li key={document.id}>
-                <DocumentLink
-                  document={document}
+                <SidebarLink
                   selected={document.id === selected?.id}
-                  onSelect={() => setSelectedId(document.id)}
-                />
+                  muted={!document.title}
+                  onSelect={() =>
+                    setView({ kind: "documents", documentId: document.id })
+                  }
+                >
+                  {titleOf(document)}
+                </SidebarLink>
               </li>
             ))}
           </ul>
@@ -132,47 +169,63 @@ function WorkspaceLayout({
       </aside>
 
       <main className="flex-1 overflow-y-auto">
-        {create.isError && (
-          <p role="alert" className="px-12 pt-4 text-sm text-destructive">
-            {create.error.message}
-          </p>
+        {view.kind === "deadlines" && (
+          <DeadlinesView data={data} workspaceId={workspace.id} />
         )}
-        {documents.isError ? (
-          <Notice
-            message={documents.error.message}
-            action="Try again"
-            onAction={() => documents.refetch()}
-          />
-        ) : selected ? (
-          <DocumentPane
-            key={selected.id}
-            data={data}
-            workspaceId={workspace.id}
-            document={selected}
-          />
-        ) : (
-          documents.isSuccess && (
-            <Notice
-              title="No documents yet"
-              message="Create a document to start writing."
-              action="New document"
-              onAction={createDocument}
-            />
-          )
+        {view.kind === "timetable" && (
+          <TimetableView data={data} workspaceId={workspace.id} />
+        )}
+        {view.kind === "documents" && (
+          <>
+            {create.isError && (
+              <p role="alert" className="px-12 pt-4 text-sm text-destructive">
+                {create.error.message}
+              </p>
+            )}
+            {documents.isError ? (
+              <Notice
+                message={documents.error.message}
+                action="Try again"
+                onAction={() => documents.refetch()}
+              />
+            ) : selected ? (
+              <DocumentPane
+                key={selected.id}
+                data={data}
+                workspaceId={workspace.id}
+                document={selected}
+              />
+            ) : (
+              documents.isSuccess && (
+                <Notice
+                  title="No documents yet"
+                  message="Create a document to start writing."
+                  action="New document"
+                  onAction={createDocument}
+                />
+              )
+            )}
+          </>
         )}
       </main>
     </div>
   );
 }
 
-function DocumentLink({
-  document,
+function titleOf(document: DocumentSummary): string {
+  return document.title || "Untitled";
+}
+
+function SidebarLink({
   selected,
+  muted,
   onSelect,
+  children,
 }: {
-  document: DocumentSummary;
   selected: boolean;
+  muted?: boolean;
   onSelect: () => void;
+  children: React.ReactNode;
 }) {
   return (
     <button
@@ -182,10 +235,10 @@ function DocumentLink({
       className={cn(
         "w-full truncate rounded-md px-2 py-1.5 text-left text-sm outline-none transition-colors hover:bg-sidebar-accent focus-visible:ring-3 focus-visible:ring-ring/50",
         selected && "bg-sidebar-accent font-medium",
-        !document.title && "text-muted-foreground",
+        muted && "text-muted-foreground",
       )}
     >
-      {document.title || "Untitled"}
+      {children}
     </button>
   );
 }
