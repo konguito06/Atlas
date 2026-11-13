@@ -1,0 +1,20 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+.turbo/
+target/
+*.tsbuildinfo
+
+# Expo
+.expo/
+ios/
+android/
+
+# Environment
+.env*
+!.env.example
+
+# OS
+.DS_Store
