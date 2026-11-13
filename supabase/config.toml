@@ -198,7 +198,7 @@ password_requirements = ""
 
 [auth.rate_limit]
 # Number of emails that can be sent per hour. Requires auth.email.smtp to be enabled.
-email_sent = 2
+email_sent = 100
 # Number of SMS messages that can be sent per hour. Requires auth.sms to be enabled.
 sms_sent = 30
 # Number of anonymous sign-ins that can be made per hour per IP address. Requires enable_anonymous_sign_ins = true.
@@ -237,7 +237,7 @@ max_frequency = "1s"
 # Number of characters used in the email OTP.
 otp_length = 6
 # Number of seconds before the email OTP expires (defaults to 1 hour).
-otp_expiry = 3600
+otp_expiry = 600
 
 # Use a production-ready SMTP server
 # [auth.email.smtp]
@@ -424,3 +424,12 @@ enabled = true
 # formatted with uppercase keywords, indent 2, max width 180, trailing commas,
 # and column/key alignment. Set to "null" to emit raw, unformatted SQL.
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":180,\"commaStyle\":\"trailing\"}"
+
+# ATLAS signs people in with a six-digit emailed code, not a link.
+[auth.email.template.magic_link]
+subject = "Your ATLAS sign-in code"
+content_path = "./supabase/templates/sign-in-code.html"
+
+[auth.email.template.confirmation]
+subject = "Your ATLAS sign-in code"
+content_path = "./supabase/templates/sign-in-code.html"
