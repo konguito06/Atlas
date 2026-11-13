@@ -1,9 +1,14 @@
+import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
+  resolve: {
+    // Resolve the `@/*` alias from tsconfig.json.
+    tsconfigPaths: true,
+  },
   // Keep Rust compiler errors visible in the `tauri dev` terminal.
   clearScreen: false,
   server: {
