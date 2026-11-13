@@ -2,5 +2,6 @@
 export const APP_NAME = "ATLAS";
 
 export * from "./auth";
+export * from "./document";
 export * from "./supabase";
 export * from "./use-session";
