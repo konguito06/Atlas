@@ -12,6 +12,7 @@
     "test:integration": "vitest run --dir tests"
   },
   "devDependencies": {
+    "@tanstack/react-query": "^5.107.1",
     "@types/node": "^26.6.6",
     "@types/react": "catalog:",
     "react": "catalog:",
@@ -24,6 +25,7 @@
     "zod": "^4.6.7"
   },
   "peerDependencies": {
-    "react": "catalog:"
+    "react": "catalog:",
+    "@tanstack/react-query": "^5.107.1"
   }
 }
