@@ -1,26 +1,16 @@
 import { APP_NAME } from "@atlas/core";
-import { StyleSheet, Text, View } from "react-native";
+import { Text, View } from "react-native";
 
 export default function HomeScreen() {
   return (
-    <View style={styles.screen}>
-      <Text accessibilityRole="header" style={styles.title}>
+    <View className="flex-1 items-center justify-center gap-2 bg-white">
+      <Text
+        accessibilityRole="header"
+        className="text-3xl font-semibold tracking-tight text-neutral-950"
+      >
         {APP_NAME}
       </Text>
-      <Text>Nothing here yet.</Text>
+      <Text className="text-sm text-neutral-500">Nothing here yet.</Text>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-  },
-  title: {
-    fontSize: 30,
-    fontWeight: "600",
-  },
-});
