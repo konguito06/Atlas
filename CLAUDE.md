@@ -8,18 +8,20 @@ ATLAS is a cross-platform productivity app for macOS (desktop), iPhone and iPad.
 
 Current focus: build each feature on desktop first. Mobile gets the feature afterwards, so keep logic in shared packages and do not touch `apps/mobile` unless asked.
 
-Only the foundation exists so far: two empty app shells and one shared package. There is no backend, editor, sync or AI code yet.
+What exists: two empty app shells, one shared package, and the database (workspaces, members, documents) with its access rules. The apps do not talk to the database yet. There is no sign-in, editor, sync or AI code.
 
 - `apps/desktop` (`@atlas/desktop`): Tauri 2, React, Vite, Tailwind 4, shadcn/ui
 - `apps/mobile` (`@atlas/mobile`): Expo SDK 58, Expo Router, NativeWind 4 (Tailwind 3)
 - `packages/core` (`@atlas/core`): shared logic and models
+- `packages/db` (`@atlas/db`): Drizzle table definitions and the access-rule tests
+- `supabase/`: local Supabase config and SQL migrations
 
 ## Planned stack
 
 Not installed yet. Add each library with the first feature that uses it.
 
 - **Desktop:** Tiptap
-- **Backend:** Supabase (PostgreSQL, Auth, Storage, Realtime), Drizzle ORM
+- **Backend:** Supabase Storage, Realtime and Edge Functions (switched off in `supabase/config.toml` until needed)
 - **Shared:** Zod, TanStack Query, Zustand, SQLite, Yjs, OpenAI API
 
 ## Commands
@@ -33,6 +35,14 @@ pnpm lint          # Biome check
 pnpm format        # Biome check --write
 pnpm typecheck
 pnpm test
+
+# Database (Docker Desktop must be running)
+pnpm db:start      # local Supabase; Studio at http://127.0.0.1:54323
+pnpm db:stop
+pnpm db:reset      # rebuild the local database from supabase/migrations
+pnpm db:generate --name=<change>            # migration from schema.ts changes
+pnpm db:generate --custom --name=<change>   # empty migration for hand-written SQL
+pnpm db:test       # access-rule tests; needs db:start, not part of pnpm test
 
 # One test file
 pnpm --filter @atlas/desktop exec vitest run src/App.test.tsx
@@ -51,6 +61,15 @@ If `cargo` is not found, prefix the command with `PATH="/opt/homebrew/opt/rustup
 - Every file under `apps/mobile/src/app` becomes a route. Mobile tests live in `apps/mobile/src/__tests__`.
 - pnpm rejects package versions published in the last day and blocks install scripts. Pin the previous version, or decide the script in `allowBuilds`, rather than disabling the check.
 - Add shadcn components with `pnpm dlx shadcn@latest add <name>` from `apps/desktop`.
+
+## Database
+
+- Tables and columns are defined in `packages/db/src/schema.ts`. Policies, grants, functions and triggers are hand-written SQL migrations. Never edit a migration that has been applied; add a new one.
+- Access is deny-by-default. A new table or column is unusable by clients until a migration grants the privilege (inserts and updates are granted per column) and a policy allows the row.
+- Every change to access rules needs a test in `packages/db/tests/rls.test.ts`, run with `pnpm db:test`.
+- Policies check membership through the `private.current_user_*` functions. Querying `workspace_members` directly inside a policy recurses.
+- Workspaces are created only through the `create_workspace(name)` function, which also makes the caller the owner.
+- Apps reach the database through supabase-js with the publishable key. The secret key and direct Postgres connections (Drizzle queries) are server-only.
 
 ## Architecture rules
 
