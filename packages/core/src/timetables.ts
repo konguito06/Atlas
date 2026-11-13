@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { Validated } from "./deadlines";
+import { DISPLAY_LOCALE, type Validated } from "./deadlines";
 import type { AtlasClient } from "./supabase";
 
 export const TIMETABLE_NAME_MAX_LENGTH = 100;
@@ -148,7 +148,7 @@ export function timeToMinutes(time: string): number | null {
 export function weekdayName(
   day: Weekday,
   format: "long" | "short" = "long",
-  locale?: string,
+  locale: string = DISPLAY_LOCALE,
 ): string {
   return new Intl.DateTimeFormat(locale, { weekday: format }).format(
     new Date(2024, 0, day),

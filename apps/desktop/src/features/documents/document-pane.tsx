@@ -1,5 +1,6 @@
 import {
   type AtlasData,
+  DISPLAY_LOCALE,
   DOCUMENT_TITLE_MAX_LENGTH,
   type DocumentSummary,
   useDeleteDocument,
@@ -8,7 +9,7 @@ import {
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
-const editedAtFormat = new Intl.DateTimeFormat(undefined, {
+const editedAtFormat = new Intl.DateTimeFormat(DISPLAY_LOCALE, {
   dateStyle: "medium",
   timeStyle: "short",
 });

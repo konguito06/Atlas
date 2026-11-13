@@ -3,6 +3,12 @@ import type { AtlasClient } from "./supabase";
 
 export const DEADLINE_TITLE_MAX_LENGTH = 200;
 
+/**
+ * The interface is in English, so dates are written in English too instead
+ * of following the device, which would mix languages on screen.
+ */
+export const DISPLAY_LOCALE = "en-GB";
+
 export interface Deadline {
   id: string;
   title: string;
@@ -70,7 +76,7 @@ const DAY_IN_MS = 24 * 60 * 60 * 1000;
 export function describeDueDate(
   dueDate: string,
   today: string,
-  locale?: string,
+  locale: string = DISPLAY_LOCALE,
 ): string {
   const due = parseLocalDate(dueDate);
   const reference = parseLocalDate(today);
