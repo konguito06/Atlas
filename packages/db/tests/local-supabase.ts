@@ -9,6 +9,7 @@ interface LocalStack {
   url: string;
   publishableKey: string;
   secretKey: string;
+  mailpitUrl: string;
 }
 
 // Keys come from the running local stack, so none are stored in the repo.
@@ -33,10 +34,17 @@ function readLocalStack(): LocalStack {
     url: status.API_URL,
     publishableKey: status.PUBLISHABLE_KEY,
     secretKey: status.SECRET_KEY,
+    mailpitUrl: status.MAILPIT_URL,
   };
 }
 
 const stack = readLocalStack();
+
+/** Where the local stack listens. Never includes the secret key. */
+export const localStack = {
+  url: stack.url,
+  publishableKey: stack.publishableKey,
+};
 const clientOptions = {
   auth: { persistSession: false, autoRefreshToken: false },
 };
@@ -75,4 +83,25 @@ export async function createSignedInUser(): Promise<TestUser> {
 export async function deleteUser(user: TestUser): Promise<void> {
   const { error } = await admin.auth.admin.deleteUser(user.id);
   if (error) throw error;
+}
+
+/** Reads the sign-in code the local stack emailed to this address. */
+export async function readSignInCode(email: string): Promise<string> {
+  const query = encodeURIComponent(`to:${email}`);
+  for (let attempt = 0; attempt < 20; attempt++) {
+    const search = await fetch(
+      `${stack.mailpitUrl}/api/v1/search?query=${query}`,
+    );
+    const { messages } = await search.json();
+    if (messages.length > 0) {
+      const message = await fetch(
+        `${stack.mailpitUrl}/api/v1/message/${messages[0].ID}`,
+      );
+      const { Text } = await message.json();
+      const code = /\b\d{6}\b/.exec(Text)?.[0];
+      if (code) return code;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  throw new Error(`No sign-in email arrived for ${email}`);
 }
