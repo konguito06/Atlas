@@ -1,6 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { beforeAll, describe, expect, test } from "vitest";
-import type { AtlasData } from "../src";
+import {
+  type AtlasData,
+  type AtlasDocument,
+  createEmptyDocument,
+  parseDocument,
+} from "../src";
 
 /**
  * What every data layer must do, whichever database is behind it. Run it
@@ -60,6 +65,50 @@ export function describeAtlasData(
         await expect(
           data.renameDocument(randomUUID(), "Ghost"),
         ).rejects.toThrow("Could not rename the document.");
+      });
+
+      test("start with the empty document as their content", async () => {
+        const content = await data.getDocumentContent(firstId);
+
+        expect(parseDocument(content)).toEqual({
+          ok: true,
+          document: createEmptyDocument(),
+        });
+      });
+
+      test("give back exactly the content that was saved", async () => {
+        const content: AtlasDocument = {
+          version: 1,
+          type: "doc",
+          content: [
+            {
+              type: "heading",
+              attrs: { level: 1 },
+              content: [{ type: "text", text: "Trip plan" }],
+            },
+            {
+              type: "paragraph",
+              content: [
+                { type: "text", text: "Book the " },
+                { type: "text", text: "ferry", marks: [{ type: "bold" }] },
+              ],
+            },
+          ],
+        };
+
+        const saved = await data.saveDocumentContent(firstId, content);
+
+        expect(saved.id).toBe(firstId);
+        expect(await data.getDocumentContent(firstId)).toEqual(content);
+      });
+
+      test("refuse to open or save a document that does not exist", async () => {
+        await expect(data.getDocumentContent(randomUUID())).rejects.toThrow(
+          "Could not open the document.",
+        );
+        await expect(
+          data.saveDocumentContent(randomUUID(), createEmptyDocument()),
+        ).rejects.toThrow("Could not save the document.");
       });
 
       test("can be deleted", async () => {

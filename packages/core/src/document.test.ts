@@ -1,7 +1,10 @@
 import { describe, expect, test } from "vitest";
 import {
   type AtlasDocument,
+  countWords,
   createEmptyDocument,
+  documentToPlainText,
+  fromEditorJson,
   parseDocument,
 } from "./document";
 
@@ -200,5 +203,118 @@ describe("parseDocument", () => {
     ],
   ])("refuses %s", (_name, value) => {
     expect(parseDocument(value)).toEqual({ ok: false, reason: "invalid" });
+  });
+});
+
+describe("fromEditorJson", () => {
+  test("adds the version and drops what the editor adds on top", () => {
+    const result = fromEditorJson({
+      type: "doc",
+      content: [
+        {
+          type: "orderedList",
+          attrs: { start: 1, type: null },
+          content: [
+            {
+              type: "listItem",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [
+                    {
+                      type: "text",
+                      text: "site",
+                      marks: [
+                        {
+                          type: "link",
+                          attrs: {
+                            href: "https://example.com",
+                            target: "_blank",
+                            rel: "noopener",
+                            class: null,
+                          },
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result).toEqual({
+      ok: true,
+      document: {
+        version: 1,
+        type: "doc",
+        content: [
+          {
+            type: "orderedList",
+            attrs: { start: 1 },
+            content: [
+              {
+                type: "listItem",
+                content: [
+                  {
+                    type: "paragraph",
+                    content: [
+                      {
+                        type: "text",
+                        text: "site",
+                        marks: [
+                          {
+                            type: "link",
+                            attrs: { href: "https://example.com" },
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    });
+  });
+
+  test.each([null, "text", 42])("refuses %j", (value) => {
+    expect(fromEditorJson(value)).toEqual({ ok: false, reason: "invalid" });
+  });
+});
+
+describe("documentToPlainText", () => {
+  test("writes each block on its own line, without formatting", () => {
+    expect(documentToPlainText(everything)).toBe(
+      [
+        "Trip plan",
+        "Book the ferry",
+        "by Friday",
+        "Travel light.",
+        "const days = 3;",
+        "Tickets",
+        "Ferry",
+        "Passport",
+      ].join("\n"),
+    );
+  });
+
+  test("is empty for an empty document", () => {
+    expect(documentToPlainText(createEmptyDocument())).toBe("");
+  });
+});
+
+describe("countWords", () => {
+  test.each([
+    ["", 0],
+    ["   ", 0],
+    ["one", 1],
+    ["Book the ferry\nby Friday", 5],
+  ])("counts %j as %i", (text, count) => {
+    expect(countWords(text)).toBe(count);
   });
 });

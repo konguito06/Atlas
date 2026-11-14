@@ -1,9 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { AtlasData, DocumentSummary } from "./data";
+import type { AtlasDocument } from "./document";
 
 const workspacesKey = ["workspaces"] as const;
 const documentsKey = (workspaceId: string) =>
   ["documents", workspaceId] as const;
+const contentKey = (documentId: string) =>
+  ["document-content", documentId] as const;
 
 export function useWorkspaces(data: AtlasData) {
   return useQuery({
@@ -71,6 +74,36 @@ export function useDeleteDocument(data: AtlasData, workspaceId: string) {
       queryClient.setQueryData<DocumentSummary[]>(
         documentsKey(workspaceId),
         (documents = []) => documents.filter((document) => document.id !== id),
+      );
+    },
+  });
+}
+
+/** A document's stored content, read fresh each time it is opened. */
+export function useDocumentContent(data: AtlasData, documentId: string) {
+  return useQuery({
+    queryKey: contentKey(documentId),
+    queryFn: () => data.getDocumentContent(documentId),
+    // The editor holds the content from here on; a background refetch
+    // would only race with what is being typed.
+    staleTime: Number.POSITIVE_INFINITY,
+    gcTime: 0,
+  });
+}
+
+export function useSaveDocumentContent(data: AtlasData, workspaceId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, content }: { id: string; content: AtlasDocument }) =>
+      data.saveDocumentContent(id, content),
+    onSuccess: (saved) => {
+      // Keeps "last edited" current in the list.
+      queryClient.setQueryData<DocumentSummary[]>(
+        documentsKey(workspaceId),
+        (documents = []) =>
+          documents.map((document) =>
+            document.id === saved.id ? saved : document,
+          ),
       );
     },
   });

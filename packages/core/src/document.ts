@@ -187,3 +187,47 @@ export function parseDocument(value: unknown): ParsedDocument {
     ? { ok: true, document: parsed.data }
     : { ok: false, reason: "invalid" };
 }
+
+/**
+ * Turns what the editor produced into a document that can be stored. The
+ * editor's JSON has no version and carries extra attributes; this adds the
+ * one and drops the others.
+ */
+export function fromEditorJson(json: unknown): ParsedDocument {
+  if (typeof json !== "object" || json === null) {
+    return { ok: false, reason: "invalid" };
+  }
+  return parseDocument({ ...json, version: DOCUMENT_VERSION });
+}
+
+interface TextSource {
+  type: string;
+  text?: string;
+  content?: TextSource[];
+}
+
+// Inline nodes run together; every block starts a new line.
+function textOf(node: TextSource): string {
+  if (node.type === "text") return node.text ?? "";
+  if (node.type === "hardBreak") return "\n";
+  const children = node.content ?? [];
+  const inline = children.every(
+    (child) => child.type === "text" || child.type === "hardBreak",
+  );
+  return children
+    .map(textOf)
+    .filter((part) => inline || part !== "")
+    .join(inline ? "" : "\n");
+}
+
+/**
+ * A document's words without its formatting, one block per line. This is
+ * what search and the assistant read.
+ */
+export function documentToPlainText(document: AtlasDocument): string {
+  return textOf(document);
+}
+
+export function countWords(text: string): number {
+  return text.split(/\s+/).filter(Boolean).length;
+}

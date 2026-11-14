@@ -195,6 +195,33 @@ export function createLocalAtlasData(db: SqlDatabase): AtlasData {
       );
     },
 
+    async getDocumentContent(id) {
+      const message = "Could not open the document.";
+      const row = await one<{ content: string }>(
+        message,
+        "documents",
+        "content",
+        id,
+      );
+      try {
+        return JSON.parse(row.content);
+      } catch {
+        throw new Error(message);
+      }
+    },
+
+    async saveDocumentContent(id, content) {
+      const message = "Could not save the document.";
+      await write(
+        message,
+        "UPDATE documents SET content = ?, updated_at = ? WHERE id = ?",
+        [JSON.stringify(content), now(), id],
+      );
+      return toDocument(
+        await one<DocumentRow>(message, "documents", DOCUMENT_COLUMNS, id),
+      );
+    },
+
     async deleteDocument(id) {
       await write(
         "Could not delete the document.",

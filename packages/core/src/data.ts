@@ -1,3 +1,4 @@
+import type { AtlasDocument } from "./document";
 import type { TasksData } from "./tasks";
 import type { TimetablesData } from "./timetables";
 
@@ -30,5 +31,14 @@ export interface AtlasData extends TasksData, TimetablesData {
     workspaceId: string;
   }): Promise<DocumentSummary>;
   renameDocument(id: string, title: string): Promise<DocumentSummary>;
+  /**
+   * What is stored for the document, exactly as stored. Check it with
+   * `parseDocument` before use: it may come from a newer app version.
+   */
+  getDocumentContent(id: string): Promise<unknown>;
+  saveDocumentContent(
+    id: string,
+    content: AtlasDocument,
+  ): Promise<DocumentSummary>;
   deleteDocument(id: string): Promise<void>;
 }
