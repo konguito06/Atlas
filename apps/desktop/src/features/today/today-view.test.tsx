@@ -1,7 +1,7 @@
 import type { Deadline, Timetable, TimetableEntry } from "@atlas/core";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { createFakeData, renderApp } from "@/test/fakes";
+import { createFakeData, documentNamed, renderApp } from "@/test/fakes";
 
 // Pin the clock: Friday 13 November 2026, 11:30.
 beforeEach(() => {
@@ -183,5 +183,118 @@ test("the sidebar counts deadlines that are due today or overdue", async () => {
     await screen.findByRole("button", {
       name: "Deadlines, 2 due today or overdue",
     }),
+  ).toBeDefined();
+});
+
+function panel(name: string) {
+  return within(screen.getByRole("region", { name }));
+}
+
+test("shows the time and a greeting for the time of day", async () => {
+  renderApp(createFakeData());
+
+  expect(
+    await screen.findByText(
+      (_text, element) =>
+        element?.tagName === "P" && element.textContent === "The time is 11:30",
+    ),
+  ).toBeDefined();
+  expect(screen.getByText("Good morning")).toBeDefined();
+});
+
+test("sums up the day in figures and a progress ring", async () => {
+  renderApp(
+    createFakeData({
+      timetables: [semester],
+      // 90 minutes done, then 30 of the next 90: half of 240 with the last.
+      entries: [
+        entry("Networks", 540, 630),
+        entry("Databases", 660, 750),
+        entry("Weights", 1080, 1140),
+      ],
+      deadlines: [
+        deadline("Library book", "2026-11-12"),
+        deadline("Essay", "2026-11-13"),
+        deadline("Quiz", "2026-11-13"),
+        deadline("Lab report", "2026-11-16"),
+      ],
+    }),
+  );
+
+  expect(
+    await screen.findByRole("img", {
+      name: "50% of today's timetable done",
+    }),
+  ).toBeDefined();
+  const figures = panel("At a glance")
+    .getAllByRole("definition")
+    .map((figure) => figure.textContent);
+  expect(figures).toEqual(["34 h", "1", "2", "1"]);
+});
+
+test("a free day shows an empty ring", async () => {
+  renderApp(createFakeData({ timetables: [semester] }));
+
+  expect(
+    await screen.findByRole("img", { name: "Nothing on the timetable today" }),
+  ).toBeDefined();
+});
+
+test("lays out the week with what each day holds", async () => {
+  renderApp(
+    createFakeData({
+      timetables: [semester],
+      entries: [
+        entry("Networks", 540, 630),
+        entry("Monday class", 540, 600, { day: 1 }),
+      ],
+      deadlines: [deadline("Essay", "2026-11-13")],
+    }),
+  );
+
+  await waitFor(() =>
+    expect(
+      within(screen.getByRole("list", { name: "This week" }))
+        .getAllByRole("listitem")
+        .map((day) => day.getAttribute("aria-label")),
+    ).toEqual([
+      "Monday 9: 1 entry, 1 h, nothing due",
+      "Tuesday 10: nothing scheduled, nothing due",
+      "Wednesday 11: nothing scheduled, nothing due",
+      "Thursday 12: nothing scheduled, nothing due",
+      "Friday 13: 1 entry, 1 h 30 min, 1 due",
+      "Saturday 14: nothing scheduled, nothing due",
+      "Sunday 15: nothing scheduled, nothing due",
+    ]),
+  );
+  expect(
+    screen
+      .getByRole("listitem", { name: /^Friday 13/ })
+      .getAttribute("aria-current"),
+  ).toBe("date");
+});
+
+test("lists recent documents and opens the one that is clicked", async () => {
+  renderApp(
+    createFakeData({
+      documents: [documentNamed("Trip plan"), documentNamed("Reading list")],
+    }),
+  );
+
+  fireEvent.click(await screen.findByRole("button", { name: "Reading list" }));
+
+  expect(
+    ((await screen.findByLabelText("Document title")) as HTMLInputElement)
+      .value,
+  ).toBe("Reading list");
+});
+
+test("with no documents, says so and links to the documents page", async () => {
+  renderApp(createFakeData());
+
+  expect(await screen.findByText("No documents yet.")).toBeDefined();
+  fireEvent.click(screen.getByRole("button", { name: "All documents" }));
+  expect(
+    await screen.findByRole("heading", { name: "No documents yet" }),
   ).toBeDefined();
 });

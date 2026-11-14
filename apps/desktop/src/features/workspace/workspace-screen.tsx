@@ -62,6 +62,8 @@ function WorkspaceLayout({
   workspace: Workspace;
 }) {
   const [page, setPage] = useState<Page>("today");
+  // Set when a document is opened from another page, so Documents shows it.
+  const [documentToOpen, setDocumentToOpen] = useState<string>();
   const deadlines = useDeadlines(data, workspace.id);
   const today = toLocalDate(useNow());
   const due = groupDeadlines(deadlines.data ?? [], today);
@@ -131,6 +133,10 @@ function WorkspaceLayout({
               data={data}
               workspaceId={workspace.id}
               onOpen={setPage}
+              onOpenDocument={(documentId) => {
+                setDocumentToOpen(documentId);
+                setPage("documents");
+              }}
             />
           )}
           {page === "deadlines" && (
@@ -140,7 +146,11 @@ function WorkspaceLayout({
             <TimetableView data={data} workspaceId={workspace.id} />
           )}
           {page === "documents" && (
-            <DocumentsView data={data} workspaceId={workspace.id} />
+            <DocumentsView
+              data={data}
+              workspaceId={workspace.id}
+              initialDocumentId={documentToOpen}
+            />
           )}
         </main>
       </div>

@@ -8,13 +8,16 @@ import { DocumentPane } from "./document-pane";
 export function DocumentsView({
   data,
   workspaceId,
+  initialDocumentId,
 }: {
   data: AtlasData;
   workspaceId: string;
+  /** The document to show first, when arriving from a link to it. */
+  initialDocumentId?: string;
 }) {
   const documents = useDocuments(data, workspaceId);
   const create = useCreateDocument(data, workspaceId);
-  const [selectedId, setSelectedId] = useState<string>();
+  const [selectedId, setSelectedId] = useState(initialDocumentId);
 
   // Falls back to the newest document, so something is open after a
   // delete and on first load.
