@@ -8,7 +8,7 @@ ATLAS is a cross-platform productivity app for macOS (desktop), iPhone and iPad.
 
 Current focus: build each feature on desktop first. Mobile gets the feature afterwards, so keep logic in shared packages and do not touch `apps/mobile` unless asked.
 
-What exists on desktop: a Today overview (the first page: clock, day line, progress ring, figures, due-soon list, week strip, recent documents), tasks (priority, status, due date, subtasks, projects), weekly timetables, and a document list (create, rename, delete, open). There is no account: the app opens straight in and saves everything in a SQLite database on the Mac. Mobile is still an empty shell. There is no editor, sync or AI code.
+What exists on desktop: a Today overview (the first page: clock, day line, progress ring, figures, due-soon list, week strip, recent documents), tasks (priority, status, due date, subtasks, projects), weekly timetables, and documents with a rich-text editor that saves by itself. There is no account: the app opens straight in and saves everything in a SQLite database on the Mac. Mobile is still an empty shell. There is no sync or AI code.
 
 Parked, not used by the app: the Supabase backend (`packages/db`, `supabase/`) and the sign-in logic. The server schema is behind the app (it still has deadlines, not tasks); do not extend it until sync is designed (see `docs/decisions/0002-data-on-the-device.md`).
 
@@ -79,6 +79,13 @@ If `cargo` is not found, prefix the command with `PATH="/opt/homebrew/opt/rustup
 - Validation rules and their messages live in `@atlas/core` (`validateTask`, `validateProject`, `validateTimetable`, `validateTimetableEntry`); forms call them and show the message. The database checks are a backstop.
 - Screens read and write through the `AtlasData` interface from `@atlas/core`, never through a database client directly. Desktop tests use the in-memory fakes in `apps/desktop/src/test/fakes.tsx`.
 - In `packages/core`, unit tests sit next to the code in `src/` (`pnpm test`); tests that need the local database live in `tests/` (`pnpm db:test`).
+
+## Document editor
+
+- The editor (Tiptap, set up in `apps/desktop/src/features/documents/editor/extensions.ts`) may only produce what the document format in `packages/core/src/document.ts` allows. Enabling a new block or mark means changing both, plus `docs/decisions/0001-document-format.md`.
+- Editor output goes through `fromEditorJson` before saving; stored content goes through `parseDocument` before opening. Never save or open raw JSON.
+- `documentToPlainText` is the text that search and the assistant will read. Keep it working for every block type.
+- In tests the simulated browser cannot type into the editor. Reach the editor instance through the element (`surface.editor`) and use its commands, as `document-editor.test.tsx` does.
 
 ## Look and feel
 
