@@ -3,11 +3,15 @@ import {
   DISPLAY_LOCALE,
   DOCUMENT_TITLE_MAX_LENGTH,
   type DocumentSummary,
+  parseDocument,
   useDeleteDocument,
+  useDocumentContent,
   useRenameDocument,
+  useSaveDocumentContent,
 } from "@atlas/core";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { DocumentEditor } from "./editor/document-editor";
 
 const editedAtFormat = new Intl.DateTimeFormat(DISPLAY_LOCALE, {
   dateStyle: "medium",
@@ -26,6 +30,8 @@ export function DocumentPane({
 }) {
   const rename = useRenameDocument(data, workspaceId);
   const remove = useDeleteDocument(data, workspaceId);
+  const content = useDocumentContent(data, document.id);
+  const saveContent = useSaveDocumentContent(data, workspaceId);
   const [title, setTitle] = useState(document.title);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
@@ -35,7 +41,8 @@ export function DocumentPane({
     }
   }
 
-  const error = rename.error ?? remove.error;
+  const error = rename.error ?? remove.error ?? content.error;
+  const parsed = content.isSuccess ? parseDocument(content.data) : undefined;
 
   return (
     <article className="mx-auto w-full max-w-2xl px-12 pt-12 pb-16">
@@ -97,6 +104,24 @@ export function DocumentPane({
           {error.message}
         </p>
       )}
+
+      <div className="mt-6">
+        {parsed?.ok && (
+          <DocumentEditor
+            initial={parsed.document}
+            onSave={(next) =>
+              saveContent.mutateAsync({ id: document.id, content: next })
+            }
+          />
+        )}
+        {parsed && !parsed.ok && (
+          <p className="text-sm text-muted-foreground">
+            {parsed.reason === "newer-version"
+              ? "This document was written with a newer version of ATLAS. Update the app to open it."
+              : "This document's content is damaged and cannot be shown. Its title can still be changed."}
+          </p>
+        )}
+      </div>
     </article>
   );
 }

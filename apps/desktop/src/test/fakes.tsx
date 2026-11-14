@@ -1,10 +1,11 @@
-import type {
-  AtlasData,
-  DocumentSummary,
-  Project,
-  Task,
-  Timetable,
-  TimetableEntry,
+import {
+  type AtlasData,
+  createEmptyDocument,
+  type DocumentSummary,
+  type Project,
+  type Task,
+  type Timetable,
+  type TimetableEntry,
 } from "@atlas/core";
 import { QueryClient } from "@tanstack/react-query";
 import { render } from "@testing-library/react";
@@ -21,12 +22,14 @@ export function documentNamed(title: string, id = title): DocumentSummary {
 
 interface FakeSeed {
   documents?: DocumentSummary[];
+  /** Stored content by document id; anything missing is an empty document. */
+  contents?: Record<string, unknown>;
   tasks?: Task[];
   projects?: Project[];
   timetables?: Timetable[];
   entries?: TimetableEntry[];
   /** Operations that should reject, to exercise error states. */
-  failing?: Array<"list" | "rename" | "saveTask" | "saveEntry">;
+  failing?: Array<"list" | "rename" | "saveTask" | "saveEntry" | "saveContent">;
 }
 
 /** A task for tests: only what matters to the test needs passing. */
@@ -50,6 +53,7 @@ export function taskNamed(title: string, extra: Partial<Task> = {}): Task {
 /** Keeps everything in memory, behaving like the real data layer. */
 export function createFakeData(seed: FakeSeed = {}): AtlasData {
   let documents = [...(seed.documents ?? [])];
+  const contents: Record<string, unknown> = { ...seed.contents };
   let tasks = [...(seed.tasks ?? [])];
   let projects = [...(seed.projects ?? [])];
   let timetables = [...(seed.timetables ?? [])];
@@ -78,6 +82,15 @@ export function createFakeData(seed: FakeSeed = {}): AtlasData {
         document.id === id ? renamed : document,
       );
       return renamed;
+    },
+    getDocumentContent: async (id) => contents[id] ?? createEmptyDocument(),
+    saveDocumentContent: async (id, content) => {
+      const current = documents.find((document) => document.id === id);
+      if (!current || failing.includes("saveContent")) {
+        throw new Error("Could not save the document.");
+      }
+      contents[id] = content;
+      return current;
     },
     deleteDocument: async (id) => {
       documents = documents.filter((document) => document.id !== id);
