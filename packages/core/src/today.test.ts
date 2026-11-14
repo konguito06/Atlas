@@ -1,11 +1,9 @@
 import { describe, expect, test } from "vitest";
-import type { Deadline } from "./deadlines";
+import { EMPTY_TASK_DRAFT, type Task } from "./tasks";
 import type { Timetable, TimetableEntry } from "./timetables";
 import {
-  addDays,
   dayProgress,
   daySpan,
-  deadlinesDueSoon,
   describeMinutes,
   describeNextUp,
   greeting,
@@ -154,35 +152,6 @@ describe("describeNextUp", () => {
   });
 });
 
-describe("addDays", () => {
-  test("crosses month and year ends", () => {
-    expect(addDays("2026-11-28", 7)).toBe("2026-12-05");
-    expect(addDays("2026-12-31", 1)).toBe("2027-01-01");
-  });
-});
-
-describe("deadlinesDueSoon", () => {
-  const deadline = (title: string, dueDate: string, completed = false) =>
-    ({ id: title, title, dueDate, dueTime: null, completed }) as Deadline;
-
-  test("keeps overdue, today and the coming week, and drops the rest", () => {
-    const soon = deadlinesDueSoon(
-      [
-        deadline("Late", "2026-11-10"),
-        deadline("Today", "2026-11-13"),
-        deadline("In a week", "2026-11-20"),
-        deadline("In eight days", "2026-11-21"),
-        deadline("Done already", "2026-11-13", true),
-      ],
-      "2026-11-13",
-    );
-
-    expect(soon.overdue.map((item) => item.title)).toEqual(["Late"]);
-    expect(soon.today.map((item) => item.title)).toEqual(["Today"]);
-    expect(soon.thisWeek.map((item) => item.title)).toEqual(["In a week"]);
-  });
-});
-
 describe("greeting", () => {
   test.each([
     [5, "Good morning"],
@@ -224,8 +193,17 @@ describe("dayProgress", () => {
 });
 
 describe("weekOverview", () => {
-  const due = (title: string, dueDate: string, completed = false) =>
-    ({ id: title, title, dueDate, dueTime: null, completed }) as Deadline;
+  const due = (title: string, dueDate: string, extra: Partial<Task> = {}) =>
+    ({
+      ...EMPTY_TASK_DRAFT,
+      id: title,
+      title,
+      dueDate,
+      status: "todo",
+      completedAt: null,
+      createdAt: "2026-11-01T00:00:00.000Z",
+      ...extra,
+    }) satisfies Task;
 
   const week = weekOverview(
     [semester, gym],
@@ -233,7 +211,8 @@ describe("weekOverview", () => {
     [
       due("Essay", "2026-11-13"),
       due("Quiz", "2026-11-13"),
-      due("Done one", "2026-11-13", true),
+      due("Done one", "2026-11-13", { status: "done" }),
+      due("A subtask", "2026-11-13", { parentId: "Essay" }),
       due("Next week", "2026-11-16"),
     ],
     at(11, 30),

@@ -60,6 +60,52 @@ const MIGRATIONS: string[] = [
   CREATE INDEX timetable_entries_timetable_id
     ON timetable_entries (timetable_id);
   `,
+  // Deadlines grow into tasks. Every existing deadline becomes a task.
+  `
+  CREATE TABLE projects (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL CHECK (length(trim(name)) BETWEEN 1 AND 100),
+    color TEXT NOT NULL
+      CHECK (color IN ('slate', 'blue', 'green', 'amber', 'rose', 'violet')),
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
+  CREATE TABLE tasks (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL CHECK (length(trim(title)) BETWEEN 1 AND 200),
+    notes TEXT NOT NULL DEFAULT '' CHECK (length(notes) <= 5000),
+    status TEXT NOT NULL DEFAULT 'todo'
+      CHECK (status IN ('todo', 'doing', 'done')),
+    priority TEXT NOT NULL DEFAULT 'none'
+      CHECK (priority IN ('none', 'low', 'medium', 'high')),
+    due_date TEXT,
+    due_time TEXT,
+    project_id TEXT REFERENCES projects (id),
+    parent_id TEXT REFERENCES tasks (id),
+    completed_at TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    CHECK (due_time IS NULL OR due_date IS NOT NULL)
+  );
+
+  CREATE INDEX tasks_parent_id ON tasks (parent_id);
+
+  INSERT INTO tasks
+    (id, title, status, due_date, due_time, completed_at, created_at, updated_at)
+  SELECT
+    id,
+    title,
+    CASE completed WHEN 1 THEN 'done' ELSE 'todo' END,
+    due_date,
+    due_time,
+    CASE completed WHEN 1 THEN updated_at END,
+    created_at,
+    updated_at
+  FROM deadlines;
+
+  DROP TABLE deadlines;
+  `,
 ];
 
 /** Brings the on-device database up to the current schema. Safe to rerun. */

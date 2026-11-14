@@ -70,75 +70,152 @@ export function describeAtlasData(
       });
     });
 
-    describe("deadlines", () => {
-      const id = randomUUID();
+    describe("tasks and projects", () => {
+      const taskId = randomUUID();
+      const subtaskId = randomUUID();
+      const projectId = randomUUID();
+      const draft = {
+        title: "Essay",
+        notes: "",
+        priority: "none" as const,
+        dueDate: null,
+        dueTime: null,
+        projectId: null,
+        parentId: null,
+      };
 
-      test("are created with or without a time", async () => {
-        const timed = await data.createDeadline({
-          id,
+      test("a project is created and listed", async () => {
+        const created = await data.createProject({
+          id: projectId,
           workspaceId,
-          title: "Essay",
+          name: "History",
+          color: "amber",
+        });
+
+        expect(created).toEqual({
+          id: projectId,
+          name: "History",
+          color: "amber",
+        });
+        expect(await data.listProjects(workspaceId)).toEqual([created]);
+      });
+
+      test("a task starts as to-do, with whatever was filled in", async () => {
+        const created = await data.createTask({
+          id: taskId,
+          workspaceId,
+          ...draft,
+          notes: "Two thousand words",
+          priority: "high",
           dueDate: "2026-12-01",
           dueTime: "23:59",
+          projectId,
         });
-        const allDay = await data.createDeadline({
+
+        expect(created).toMatchObject({
+          id: taskId,
+          title: "Essay",
+          notes: "Two thousand words",
+          status: "todo",
+          priority: "high",
+          dueDate: "2026-12-01",
+          dueTime: "23:59",
+          projectId,
+          parentId: null,
+          completedAt: null,
+        });
+      });
+
+      test("a task needs neither a date nor a project", async () => {
+        const created = await data.createTask({
           id: randomUUID(),
           workspaceId,
-          title: "Exam",
-          dueDate: "2026-12-10",
-          dueTime: null,
+          ...draft,
+          title: "Someday",
         });
 
-        expect(timed).toEqual({
-          id,
-          title: "Essay",
-          dueDate: "2026-12-01",
-          dueTime: "23:59",
-          completed: false,
-        });
-        expect(allDay.dueTime).toBeNull();
-        expect(await data.listDeadlines(workspaceId)).toHaveLength(2);
+        expect(created).toMatchObject({ dueDate: null, projectId: null });
       });
 
-      test("can be ticked off without changing anything else", async () => {
-        const saved = await data.updateDeadline(id, { completed: true });
-
-        expect(saved).toEqual({
-          id,
-          title: "Essay",
-          dueDate: "2026-12-01",
-          dueTime: "23:59",
-          completed: true,
+      test("a subtask belongs to its task, and cannot have subtasks itself", async () => {
+        const subtask = await data.createTask({
+          id: subtaskId,
+          workspaceId,
+          ...draft,
+          title: "Outline",
+          parentId: taskId,
         });
+
+        expect(subtask.parentId).toBe(taskId);
+        await expect(
+          data.createTask({
+            id: randomUUID(),
+            workspaceId,
+            ...draft,
+            title: "Too deep",
+            parentId: subtaskId,
+          }),
+        ).rejects.toThrow("Could not add the task.");
       });
 
-      test("can be rescheduled and have their time removed", async () => {
-        const saved = await data.updateDeadline(id, {
+      test("marking a task done records when, and reopening clears it", async () => {
+        const done = await data.updateTask(taskId, { status: "done" });
+        const reopened = await data.updateTask(taskId, { status: "doing" });
+
+        expect(done.status).toBe("done");
+        expect(done.completedAt).toEqual(expect.any(String));
+        expect(reopened).toMatchObject({ status: "doing", completedAt: null });
+        // Nothing else moved.
+        expect(reopened).toMatchObject({ title: "Essay", priority: "high" });
+      });
+
+      test("a task can be edited, and its date and project cleared", async () => {
+        const saved = await data.updateTask(taskId, {
           title: "Essay draft",
-          dueDate: "2026-12-05",
+          priority: "low",
+          dueDate: null,
           dueTime: null,
+          projectId: null,
         });
 
-        expect(saved).toEqual({
-          id,
+        expect(saved).toMatchObject({
           title: "Essay draft",
-          dueDate: "2026-12-05",
+          priority: "low",
+          dueDate: null,
           dueTime: null,
-          completed: true,
+          projectId: null,
         });
       });
 
-      test("refuse a blank title, with a readable message", async () => {
-        await expect(data.updateDeadline(id, { title: "  " })).rejects.toThrow(
-          "Could not save the deadline.",
+      test("refuses a blank title, a time without a date, or an unknown project", async () => {
+        await expect(data.updateTask(taskId, { title: "  " })).rejects.toThrow(
+          "Could not save the task.",
         );
+        await expect(
+          data.updateTask(taskId, { dueTime: "09:00" }),
+        ).rejects.toThrow("Could not save the task.");
+        await expect(
+          data.updateTask(taskId, { projectId: randomUUID() }),
+        ).rejects.toThrow("Could not save the task.");
       });
 
-      test("can be deleted", async () => {
-        await data.deleteDeadline(id);
+      test("deleting a project keeps its tasks, without a project", async () => {
+        await data.updateTask(taskId, { projectId });
 
-        const remaining = await data.listDeadlines(workspaceId);
-        expect(remaining.map((deadline) => deadline.title)).toEqual(["Exam"]);
+        await data.deleteProject(projectId);
+
+        const tasks = await data.listTasks(workspaceId);
+        expect(await data.listProjects(workspaceId)).toEqual([]);
+        expect(tasks.find((task) => task.id === taskId)?.projectId).toBeNull();
+      });
+
+      test("deleting a task deletes its subtasks", async () => {
+        await data.deleteTask(taskId);
+
+        const titles = (await data.listTasks(workspaceId)).map(
+          (task) => task.title,
+        );
+        expect(titles).toEqual(["Someday"]);
       });
     });
 

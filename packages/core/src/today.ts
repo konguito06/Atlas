@@ -1,4 +1,5 @@
-import { type Deadline, groupDeadlines, toLocalDate } from "./deadlines";
+import { addDays, toLocalDate } from "./dates";
+import type { Task } from "./tasks";
 import {
   type Timetable,
   type TimetableEntry,
@@ -102,29 +103,6 @@ export function describeNextUp(entries: TodayEntry[], now: Date): string {
     : "Nothing on your timetable today.";
 }
 
-/** Adds days to a YYYY-MM-DD date, in the person's calendar. */
-export function addDays(date: string, days: number): string {
-  const [year = 0, month = 1, day = 1] = date.split("-").map(Number);
-  return toLocalDate(new Date(year, month - 1, day + days));
-}
-
-/**
- * The deadlines worth showing on a day's overview: everything overdue or
- * due today, plus what is due within the coming week.
- */
-export function deadlinesDueSoon(
-  deadlines: Deadline[],
-  today: string,
-): { overdue: Deadline[]; today: Deadline[]; thisWeek: Deadline[] } {
-  const groups = groupDeadlines(deadlines, today);
-  const horizon = addDays(today, 7);
-  return {
-    overdue: groups.overdue,
-    today: groups.today,
-    thisWeek: groups.upcoming.filter((deadline) => deadline.dueDate <= horizon),
-  };
-}
-
 /** "Good morning", "Good afternoon" or "Good evening", by the clock. */
 export function greeting(now: Date): string {
   const hour = now.getHours();
@@ -164,7 +142,7 @@ export interface WeekDay {
   /** Timetable entries on that weekday, and how long they run in total. */
   entryCount: number;
   scheduledMinutes: number;
-  /** Deadlines due that day that are not done yet. */
+  /** Tasks due that day that are not done yet. */
   dueCount: number;
 }
 
@@ -172,7 +150,7 @@ export interface WeekDay {
 export function weekOverview(
   timetables: Timetable[],
   entries: TimetableEntry[],
-  deadlines: Deadline[],
+  tasks: Task[],
   now: Date,
 ): WeekDay[] {
   const today = toLocalDate(now);
@@ -197,8 +175,11 @@ export function weekOverview(
         (total, entry) => total + entry.endMinute - entry.startMinute,
         0,
       ),
-      dueCount: deadlines.filter(
-        (deadline) => !deadline.completed && deadline.dueDate === date,
+      dueCount: tasks.filter(
+        (task) =>
+          task.parentId === null &&
+          task.status !== "done" &&
+          task.dueDate === date,
       ).length,
     };
   });
