@@ -12,11 +12,12 @@ The app opens straight into the workspace with no account. Everything is saved i
 
 - Screens keep depending on the `AtlasData` interface. `createLocalAtlasData` in `packages/core/src/local/` implements it over a small `SqlDatabase` interface, so the queries are shared and each app only wraps its own SQLite driver (`tauri-plugin-sql` on desktop).
 - The on-device schema and its migrations live in `packages/core/src/local/migrations.ts`, versioned with `PRAGMA user_version`.
-- One set of tests (`packages/core/test-support/data-contract.ts`) runs against both the on-device and the server-backed data layers, so they behave the same.
+- One set of tests (`packages/core/test-support/data-contract.ts`) defines what a data layer must do.
 
 ## What is parked, not deleted
 
-- The Supabase backend (`packages/db`, `supabase/`), the server-backed data layer (`createAtlasData`) and the sign-in logic in `@atlas/core` stay, tested, as the future sync target. The app does not use them.
+- The Supabase backend (`packages/db`, `supabase/`) and the sign-in logic in `@atlas/core` stay, tested, as the starting point for sync. The app does not use them.
+- Update, 2026-11-14: the server-backed data layer (`createAtlasData`) was removed when deadlines became tasks. Keeping a second, unused implementation in step with every feature cost more than it protected, and sync will reshape the server side anyway. The server schema therefore still has deadlines and no tasks or projects. The last version is in commit `611998f`.
 - The desktop sign-in screen was removed from the app. It can be restored from commit `d06defe` when accounts return.
 
 ## Consequences
