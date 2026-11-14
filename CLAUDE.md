@@ -8,7 +8,7 @@ ATLAS is a cross-platform productivity app for macOS (desktop), iPhone and iPad.
 
 Current focus: build each feature on desktop first. Mobile gets the feature afterwards, so keep logic in shared packages and do not touch `apps/mobile` unless asked.
 
-What exists: the database (workspaces, members, documents) with its access rules, sign-in by emailed six-digit code, the document format, and on desktop the sign-in screen and document list (create, rename, delete, open). Mobile is still an empty shell. There is no editor, sync or AI code.
+What exists: the database with its access rules, sign-in by emailed six-digit code, the document format, and on desktop the sign-in screen, the document list (create, rename, delete, open), deadlines, and weekly timetables. Mobile is still an empty shell. There is no editor, sync or AI code.
 
 Architectural decisions are recorded in `docs/decisions/`. Read the relevant one before changing what it covers, and add a new record when a decision changes.
 
@@ -63,10 +63,13 @@ If `cargo` is not found, prefix the command with `PATH="/opt/homebrew/opt/rustup
 - `react-native-css-interop` is a direct dependency of mobile only because pnpm isolates packages. Keep its version equal to the one `nativewind` depends on.
 - Every file under `apps/mobile/src/app` becomes a route. Mobile tests live in `apps/mobile/src/__tests__`.
 - pnpm rejects package versions published in the last day and blocks install scripts. Pin the previous version, or decide the script in `allowBuilds`, rather than disabling the check.
-- Add shadcn components with `pnpm dlx shadcn@latest add <name>` from `apps/desktop`, then `pnpm install` (it does not always add their dependencies).
+- Add shadcn components with `pnpm dlx shadcn@latest add <name> --overwrite` from `apps/desktop` (without `--overwrite` it stops at a prompt), then install any import it left unresolved and run `pnpm format`.
 - The desktop app reads the Supabase address and publishable key from `apps/desktop/.env.local` (see `.env.example`; values come from `pnpm exec supabase status`).
 - Desktop code is grouped by feature in `apps/desktop/src/features/<feature>`. Screens take the Supabase client as a prop, so tests pass a fake one.
 - Shared React hooks live in `@atlas/core`, which lists React and TanStack Query as peer dependencies.
+- Deadline dates and timetable times have no time zone: dates are `YYYY-MM-DD` strings, clock times are `HH:MM`, timetable times are minutes after midnight. Do not convert them through `Date` in UTC.
+- The interface is English, so dates are formatted with `DISPLAY_LOCALE` from `@atlas/core`, never the device locale.
+- Validation rules and their messages live in `@atlas/core` (`validateDeadline`, `validateTimetable`, `validateTimetableEntry`); forms call them and show the message. The database checks are a backstop.
 - Screens read and write through the `AtlasData` interface from `@atlas/core`, never through the Supabase client directly. Desktop tests use the in-memory fakes in `apps/desktop/src/test/fakes.tsx`.
 - In `packages/core`, unit tests sit next to the code in `src/` (`pnpm test`); tests that need the local database live in `tests/` (`pnpm db:test`).
 
