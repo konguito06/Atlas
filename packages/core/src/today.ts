@@ -124,3 +124,82 @@ export function deadlinesDueSoon(
     thisWeek: groups.upcoming.filter((deadline) => deadline.dueDate <= horizon),
   };
 }
+
+/** "Good morning", "Good afternoon" or "Good evening", by the clock. */
+export function greeting(now: Date): string {
+  const hour = now.getHours();
+  if (hour >= 5 && hour < 12) return "Good morning";
+  if (hour >= 12 && hour < 18) return "Good afternoon";
+  return "Good evening";
+}
+
+/**
+ * How far through today's timetable the day is, counted in scheduled
+ * minutes, so a long class weighs more than a short one.
+ */
+export function dayProgress(
+  entries: TodayEntry[],
+  now: Date,
+): { doneMinutes: number; totalMinutes: number; fraction: number } {
+  const minute = minutesOfDay(now);
+  let doneMinutes = 0;
+  let totalMinutes = 0;
+  for (const { entry } of entries) {
+    const length = entry.endMinute - entry.startMinute;
+    totalMinutes += length;
+    doneMinutes += Math.min(Math.max(minute - entry.startMinute, 0), length);
+  }
+  return {
+    doneMinutes,
+    totalMinutes,
+    fraction: totalMinutes === 0 ? 0 : doneMinutes / totalMinutes,
+  };
+}
+
+export interface WeekDay {
+  /** YYYY-MM-DD. */
+  date: string;
+  weekday: Weekday;
+  isToday: boolean;
+  /** Timetable entries on that weekday, and how long they run in total. */
+  entryCount: number;
+  scheduledMinutes: number;
+  /** Deadlines due that day that are not done yet. */
+  dueCount: number;
+}
+
+/** The current week, Monday to Sunday, with what each day holds. */
+export function weekOverview(
+  timetables: Timetable[],
+  entries: TimetableEntry[],
+  deadlines: Deadline[],
+  now: Date,
+): WeekDay[] {
+  const today = toLocalDate(now);
+  const monday = addDays(today, 1 - isoWeekday(now));
+  const shown = timetables.flatMap(
+    (timetable) =>
+      visibleEntries(
+        timetable,
+        entries.filter((entry) => entry.timetableId === timetable.id),
+      ).visible,
+  );
+
+  return ([1, 2, 3, 4, 5, 6, 7] as const).map((weekday) => {
+    const date = addDays(monday, weekday - 1);
+    const onDay = shown.filter((entry) => entry.day === weekday);
+    return {
+      date,
+      weekday,
+      isToday: date === today,
+      entryCount: onDay.length,
+      scheduledMinutes: onDay.reduce(
+        (total, entry) => total + entry.endMinute - entry.startMinute,
+        0,
+      ),
+      dueCount: deadlines.filter(
+        (deadline) => !deadline.completed && deadline.dueDate === date,
+      ).length,
+    };
+  });
+}

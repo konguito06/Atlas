@@ -3,12 +3,15 @@ import type { Deadline } from "./deadlines";
 import type { Timetable, TimetableEntry } from "./timetables";
 import {
   addDays,
+  dayProgress,
   daySpan,
   deadlinesDueSoon,
   describeMinutes,
   describeNextUp,
+  greeting,
   isoWeekday,
   todaysEntries,
+  weekOverview,
 } from "./today";
 
 // Friday 13 November 2026, at the given local time.
@@ -177,5 +180,87 @@ describe("deadlinesDueSoon", () => {
     expect(soon.overdue.map((item) => item.title)).toEqual(["Late"]);
     expect(soon.today.map((item) => item.title)).toEqual(["Today"]);
     expect(soon.thisWeek.map((item) => item.title)).toEqual(["In a week"]);
+  });
+});
+
+describe("greeting", () => {
+  test.each([
+    [5, "Good morning"],
+    [11, "Good morning"],
+    [12, "Good afternoon"],
+    [17, "Good afternoon"],
+    [18, "Good evening"],
+    [2, "Good evening"],
+  ])("at %i o'clock says %s", (hour, text) => {
+    expect(greeting(at(hour))).toBe(text);
+  });
+});
+
+describe("dayProgress", () => {
+  const progress = (now: Date) =>
+    dayProgress(todaysEntries([semester, gym], friday, now), now);
+
+  test("is nothing before the first entry and everything after the last", () => {
+    expect(progress(at(7)).fraction).toBe(0);
+    expect(progress(at(22)).fraction).toBe(1);
+  });
+
+  test("counts finished entries and the part of the current one already past", () => {
+    // Networks (90 min) is over; Databases (90 min) is 30 minutes in.
+    expect(progress(at(11, 30))).toEqual({
+      doneMinutes: 120,
+      totalMinutes: 240,
+      fraction: 0.5,
+    });
+  });
+
+  test("is zero on a day with no entries", () => {
+    expect(dayProgress([], at(12))).toEqual({
+      doneMinutes: 0,
+      totalMinutes: 0,
+      fraction: 0,
+    });
+  });
+});
+
+describe("weekOverview", () => {
+  const due = (title: string, dueDate: string, completed = false) =>
+    ({ id: title, title, dueDate, dueTime: null, completed }) as Deadline;
+
+  const week = weekOverview(
+    [semester, gym],
+    [...friday, entry("Monday class", 540, 600, { day: 1 })],
+    [
+      due("Essay", "2026-11-13"),
+      due("Quiz", "2026-11-13"),
+      due("Done one", "2026-11-13", true),
+      due("Next week", "2026-11-16"),
+    ],
+    at(11, 30),
+  );
+
+  test("runs Monday to Sunday of the current week and marks today", () => {
+    expect(week.map((day) => day.date)).toEqual([
+      "2026-11-09",
+      "2026-11-10",
+      "2026-11-11",
+      "2026-11-12",
+      "2026-11-13",
+      "2026-11-14",
+      "2026-11-15",
+    ]);
+    expect(week.filter((day) => day.isToday).map((day) => day.weekday)).toEqual(
+      [5],
+    );
+  });
+
+  test("counts each day's entries, their length and its open deadlines", () => {
+    expect(week[0]).toMatchObject({ entryCount: 1, scheduledMinutes: 60 });
+    expect(week[4]).toMatchObject({
+      entryCount: 3,
+      scheduledMinutes: 240,
+      dueCount: 2,
+    });
+    expect(week[5]).toMatchObject({ entryCount: 0, dueCount: 0 });
   });
 });
