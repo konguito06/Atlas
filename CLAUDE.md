@@ -8,9 +8,9 @@ ATLAS is a cross-platform productivity app for macOS (desktop), iPhone and iPad.
 
 Current focus: build each feature on desktop first. Mobile gets the feature afterwards, so keep logic in shared packages and do not touch `apps/mobile` unless asked.
 
-What exists on desktop: a Today overview (the first page: clock, day line, progress ring, figures, due-soon list, week strip, recent documents), deadlines, weekly timetables, and a document list (create, rename, delete, open). There is no account: the app opens straight in and saves everything in a SQLite database on the Mac. Mobile is still an empty shell. There is no editor, sync or AI code.
+What exists on desktop: a Today overview (the first page: clock, day line, progress ring, figures, due-soon list, week strip, recent documents), tasks (priority, status, due date, subtasks, projects), weekly timetables, and a document list (create, rename, delete, open). There is no account: the app opens straight in and saves everything in a SQLite database on the Mac. Mobile is still an empty shell. There is no editor, sync or AI code.
 
-Parked, not used by the app: the Supabase backend (`packages/db`, `supabase/`), the server-backed data layer and the sign-in logic. They stay tested as the future sync target (see `docs/decisions/0002-data-on-the-device.md`).
+Parked, not used by the app: the Supabase backend (`packages/db`, `supabase/`) and the sign-in logic. The server schema is behind the app (it still has deadlines, not tasks); do not extend it until sync is designed (see `docs/decisions/0002-data-on-the-device.md`).
 
 The product vision and the order of work are in `docs/roadmap.md`. Build one phase at a time and keep its status table current.
 
@@ -70,13 +70,13 @@ If `cargo` is not found, prefix the command with `PATH="/opt/homebrew/opt/rustup
 - pnpm rejects package versions published in the last day and blocks install scripts. Pin the previous version, or decide the script in `allowBuilds`, rather than disabling the check.
 - Add shadcn components with `pnpm dlx shadcn@latest add <name> --overwrite` from `apps/desktop` (without `--overwrite` it stops at a prompt), then install any import it left unresolved and run `pnpm format`.
 - The desktop app's data is `~/Library/Application Support/com.konguito06.atlas/atlas.db`. Its schema lives in `packages/core/src/local/migrations.ts`: never edit a shipped entry, add a new one.
-- Any change to what the data layer does goes in both `createLocalAtlasData` and `createAtlasData`, and in the shared tests in `packages/core/test-support/data-contract.ts`, which run against both.
+- Any change to what the data layer does goes in `createLocalAtlasData`, the `AtlasData` interface, the shared tests in `packages/core/test-support/data-contract.ts`, and the desktop fake in `apps/desktop/src/test/fakes.tsx`.
 - The on-device driver pools connections, so do not rely on transactions or foreign keys across calls; keep each `execute` self-contained.
 - Desktop code is grouped by feature in `apps/desktop/src/features/<feature>`. Screens take the Supabase client as a prop, so tests pass a fake one.
 - Shared React hooks live in `@atlas/core`, which lists React and TanStack Query as peer dependencies.
-- Deadline dates and timetable times have no time zone: dates are `YYYY-MM-DD` strings, clock times are `HH:MM`, timetable times are minutes after midnight. Do not convert them through `Date` in UTC.
+- Task due dates and timetable times have no time zone: dates are `YYYY-MM-DD` strings, clock times are `HH:MM`, timetable times are minutes after midnight. Do not convert them through `Date` in UTC.
 - The interface is English, so dates are formatted with `DISPLAY_LOCALE` from `@atlas/core`, never the device locale.
-- Validation rules and their messages live in `@atlas/core` (`validateDeadline`, `validateTimetable`, `validateTimetableEntry`); forms call them and show the message. The database checks are a backstop.
+- Validation rules and their messages live in `@atlas/core` (`validateTask`, `validateProject`, `validateTimetable`, `validateTimetableEntry`); forms call them and show the message. The database checks are a backstop.
 - Screens read and write through the `AtlasData` interface from `@atlas/core`, never through a database client directly. Desktop tests use the in-memory fakes in `apps/desktop/src/test/fakes.tsx`.
 - In `packages/core`, unit tests sit next to the code in `src/` (`pnpm test`); tests that need the local database live in `tests/` (`pnpm db:test`).
 

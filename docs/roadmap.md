@@ -12,22 +12,22 @@ The rule for building it: a strong foundation first, then one feature at a time.
 
 ## Where things stand
 
-| Area in the vision   | Today                                                                                                                                                                                                                                 |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Command Center       | An overview page exists: clock, greeting, today's schedule, due-soon list, week strip, recent documents. No briefing, projects, quick notes, suggestions or customising. It leans on bordered panels, which the vision asks to avoid. |
-| Documents and editor | Documents can be created, renamed, deleted and opened. The document format is defined. There is no editor.                                                                                                                            |
-| Tasks and projects   | Deadlines only: a title, a date, an optional time and a done tick.                                                                                                                                                                    |
-| Calendar             | A repeating weekly timetable only. No dated events, no day or month view.                                                                                                                                                             |
-| Databases            | Nothing.                                                                                                                                                                                                                              |
-| Search               | Nothing.                                                                                                                                                                                                                              |
-| Assistant            | Nothing. It needs a server to hold the AI key, and the app currently has no account or server.                                                                                                                                        |
-| Platforms            | Desktop only. Data is on the device, with no sync. Mobile is an empty shell.                                                                                                                                                          |
+| Area in the vision   | Today                                                                                                                                                                                                                                          |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Command Center       | An overview page exists: clock, greeting, today's schedule, due-soon list, week strip, recent documents. No briefing, projects, quick notes, suggestions or customising. It leans on bordered panels, which the vision asks to avoid.          |
+| Documents and editor | Documents can be created, renamed, deleted and opened. The document format is defined. There is no editor.                                                                                                                                     |
+| Tasks and projects   | Tasks with notes, an optional due date and time, priority, status (to do, in progress, done), one level of subtasks, and projects with a colour. Not yet: tags, reminders, recurring tasks, dependencies, board or other views, drag-and-drop. |
+| Calendar             | A repeating weekly timetable only. No dated events, no day or month view.                                                                                                                                                                      |
+| Databases            | Nothing.                                                                                                                                                                                                                                       |
+| Search               | Nothing.                                                                                                                                                                                                                                       |
+| Assistant            | Nothing. It needs a server to hold the AI key, and the app currently has no account or server.                                                                                                                                                 |
+| Platforms            | Desktop only. Data is on the device, with no sync. Mobile is an empty shell.                                                                                                                                                                   |
 
 ## Proposed order
 
 Each phase leaves the app usable and is built desktop-first.
 
-1. **Tasks.** Grow deadlines into tasks: priority, status, subtasks, tags and projects, with existing deadlines carried over. The Command Center and calendar both depend on this.
+1. **Tasks.** First part done (see the table). Still to come: tags, recurring tasks, reminders, a board view and drag-and-drop.
 2. **Calendar.** Day, week and month views that show dated events, the weekly timetable and task due dates together, with time blocking.
 3. **Editor.** Tiptap on the existing document format: rich text, lists, checklists, quotes, code blocks, links, Markdown shortcuts, slash commands, undo and redo, autosave. Tables, images, nested pages and history follow.
 4. **Search and command palette.** One keyboard-first search across documents, tasks and events.
@@ -42,4 +42,3 @@ Design polish (motion, keyboard navigation, empty and loading states, reduced mo
 ## Open questions
 
 - The rest of the vision text.
-- Whether tasks or the editor should come first.
