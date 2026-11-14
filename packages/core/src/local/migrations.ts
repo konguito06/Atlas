@@ -1,0 +1,79 @@
+import type { SqlDatabase } from "./sql-database";
+
+// The on-device schema, one entry per version. Never edit an entry that has
+// shipped: add a new one. The CHECK rules mirror the server's, as a backstop
+// behind the validation in the apps.
+const MIGRATIONS: string[] = [
+  `
+  CREATE TABLE documents (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL DEFAULT '' CHECK (length(title) <= 300),
+    content TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
+  CREATE TABLE deadlines (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL CHECK (length(trim(title)) BETWEEN 1 AND 200),
+    due_date TEXT NOT NULL,
+    due_time TEXT,
+    completed INTEGER NOT NULL DEFAULT 0 CHECK (completed IN (0, 1)),
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
+  CREATE TABLE timetables (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL CHECK (length(trim(name)) BETWEEN 1 AND 100),
+    days TEXT NOT NULL,
+    start_hour INTEGER NOT NULL,
+    end_hour INTEGER NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    CHECK (
+      start_hour BETWEEN 0 AND 23
+      AND end_hour BETWEEN 1 AND 24
+      AND end_hour > start_hour
+    )
+  );
+
+  CREATE TABLE timetable_entries (
+    id TEXT PRIMARY KEY,
+    timetable_id TEXT NOT NULL REFERENCES timetables (id),
+    title TEXT NOT NULL CHECK (length(trim(title)) BETWEEN 1 AND 100),
+    day INTEGER NOT NULL CHECK (day BETWEEN 1 AND 7),
+    start_minute INTEGER NOT NULL,
+    end_minute INTEGER NOT NULL,
+    location TEXT NOT NULL DEFAULT '' CHECK (length(location) <= 100),
+    color TEXT NOT NULL
+      CHECK (color IN ('slate', 'blue', 'green', 'amber', 'rose', 'violet')),
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    CHECK (
+      start_minute BETWEEN 0 AND 1439
+      AND end_minute BETWEEN 1 AND 1440
+      AND end_minute > start_minute
+    )
+  );
+
+  CREATE INDEX timetable_entries_timetable_id
+    ON timetable_entries (timetable_id);
+  `,
+];
+
+/** Brings the on-device database up to the current schema. Safe to rerun. */
+export async function migrate(db: SqlDatabase): Promise<void> {
+  const [row] = await db.select<{ user_version: number }>(
+    "PRAGMA user_version",
+  );
+  const current = row?.user_version ?? 0;
+
+  for (let version = current; version < MIGRATIONS.length; version++) {
+    // One call, so the whole step runs on one connection and either all of
+    // it applies or none of it does.
+    await db.execute(
+      `BEGIN; ${MIGRATIONS[version]} PRAGMA user_version = ${version + 1}; COMMIT;`,
+    );
+  }
+}
