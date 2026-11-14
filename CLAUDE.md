@@ -12,6 +12,8 @@ What exists on desktop: a Today overview (the first page: clock, day line, progr
 
 Parked, not used by the app: the Supabase backend (`packages/db`, `supabase/`), the server-backed data layer and the sign-in logic. They stay tested as the future sync target (see `docs/decisions/0002-data-on-the-device.md`).
 
+The product vision and the order of work are in `docs/roadmap.md`. Build one phase at a time and keep its status table current.
+
 Architectural decisions are recorded in `docs/decisions/`. Read the relevant one before changing what it covers, and add a new record when a decision changes.
 
 - `apps/desktop` (`@atlas/desktop`): Tauri 2, React, Vite, Tailwind 4, shadcn/ui
@@ -80,6 +82,7 @@ If `cargo` is not found, prefix the command with `PATH="/opt/homebrew/opt/rustup
 
 ## Look and feel
 
+- The target is a calm, Apple-inspired Mac app: minimal, few boxes and borders, careful type and spacing, smooth but restrained motion, full keyboard use, reduced-motion respected. Avoid heavy gradients and dashboard clutter.
 - Dark mode follows the Mac's appearance through `prefers-color-scheme`; there is no `.dark` class. Colours come from the tokens in `apps/desktop/src/index.css`, so use `bg-background`, `text-muted-foreground` and so on, and give any raw Tailwind colour a `dark:` partner.
 - `signal` (the warm orange) is reserved for "now". Do not use it for decoration or for errors (`destructive` is for those).
 - Titles use `font-heading` (the system serif); everything else is the system sans.
