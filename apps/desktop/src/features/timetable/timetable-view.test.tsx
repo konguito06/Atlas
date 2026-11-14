@@ -244,7 +244,7 @@ test("with several timetables, a picker switches between them", async () => {
   });
   await screen.findByRole("heading", { name: "Semester 1" });
 
-  fireEvent.change(screen.getByLabelText("Timetable"), {
+  fireEvent.change(screen.getByLabelText("Showing"), {
     target: { value: "timetable-2" },
   });
 

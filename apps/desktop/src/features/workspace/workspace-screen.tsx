@@ -1,231 +1,149 @@
 import {
+  APP_NAME,
   type AtlasData,
-  type DocumentSummary,
-  useCreateDocument,
-  useDocuments,
+  groupDeadlines,
+  toLocalDate,
+  useDeadlines,
   useWorkspaces,
   type Workspace,
 } from "@atlas/core";
+import {
+  CalendarDays,
+  FileText,
+  Flag,
+  type LucideIcon,
+  Sun,
+} from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DeadlinesView } from "@/features/deadlines/deadlines-view";
-import { DocumentPane } from "@/features/documents/document-pane";
+import { DocumentsView } from "@/features/documents/documents-view";
 import { TimetableView } from "@/features/timetable/timetable-view";
+import { TodayView } from "@/features/today/today-view";
+import { useNow } from "@/lib/use-now";
 import { cn } from "@/lib/utils";
 
-interface WorkspaceScreenProps {
-  data: AtlasData;
-}
-
-export function WorkspaceScreen({ data }: WorkspaceScreenProps) {
+export function WorkspaceScreen({ data }: { data: AtlasData }) {
   const workspaces = useWorkspaces(data);
 
   if (workspaces.isPending) {
     return null;
   }
-  if (workspaces.isError) {
-    return (
-      <Notice
-        message={workspaces.error.message}
-        action="Try again"
-        onAction={() => workspaces.refetch()}
-      />
-    );
-  }
-
-  const workspace = workspaces.data[0];
+  const workspace = workspaces.data?.[0];
   if (!workspace) {
-    return <Notice message="You are not a member of any workspace." />;
+    return (
+      <div className="flex h-svh flex-col items-center justify-center gap-3 p-8 text-center">
+        <p className="text-sm text-muted-foreground">
+          {workspaces.error?.message ?? "Your data could not be loaded."}
+        </p>
+        <Button variant="outline" onClick={() => workspaces.refetch()}>
+          Try again
+        </Button>
+      </div>
+    );
   }
   return <WorkspaceLayout data={data} workspace={workspace} />;
 }
 
-/** What the main pane shows. A document view may not name a document yet. */
-type View =
-  | { kind: "documents"; documentId?: string }
-  | { kind: "deadlines" }
-  | { kind: "timetable" };
+type Page = "today" | "deadlines" | "timetable" | "documents";
+
+const PAGES: Array<{ page: Page; label: string; icon: LucideIcon }> = [
+  { page: "today", label: "Today", icon: Sun },
+  { page: "deadlines", label: "Deadlines", icon: Flag },
+  { page: "timetable", label: "Timetable", icon: CalendarDays },
+  { page: "documents", label: "Documents", icon: FileText },
+];
 
 function WorkspaceLayout({
   data,
   workspace,
-}: WorkspaceScreenProps & { workspace: Workspace }) {
-  const documents = useDocuments(data, workspace.id);
-  const create = useCreateDocument(data, workspace.id);
-  const [view, setView] = useState<View>({ kind: "documents" });
-
-  // Falls back to the newest document, so something is open after a
-  // delete and on first load.
-  const selected =
-    view.kind === "documents"
-      ? (documents.data?.find((document) => document.id === view.documentId) ??
-        documents.data?.[0])
-      : undefined;
-
-  function createDocument() {
-    create.mutate(crypto.randomUUID(), {
-      onSuccess: (created) =>
-        setView({ kind: "documents", documentId: created.id }),
-    });
-  }
+}: {
+  data: AtlasData;
+  workspace: Workspace;
+}) {
+  const [page, setPage] = useState<Page>("today");
+  const deadlines = useDeadlines(data, workspace.id);
+  const today = toLocalDate(useNow());
+  const due = groupDeadlines(deadlines.data ?? [], today);
+  const dueCount = due.overdue.length + due.today.length;
 
   return (
     <div className="flex h-svh">
-      <aside className="flex w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
-        <div className="px-4 pt-5 pb-3">
-          <p className="truncate font-heading text-lg">{workspace.name}</p>
-        </div>
+      <aside className="flex w-56 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
+        {/* The window's traffic lights sit over this strip; it also drags the window. */}
+        <div data-tauri-drag-region className="h-12 shrink-0" />
+        <p className="px-5 pb-5 font-heading text-2xl tracking-tight">
+          {APP_NAME}
+        </p>
 
-        <nav aria-label="Planning" className="px-3">
+        <nav aria-label="Pages" className="px-3">
           <ul className="grid gap-0.5">
-            <li>
-              <SidebarLink
-                selected={view.kind === "deadlines"}
-                onSelect={() => setView({ kind: "deadlines" })}
-              >
-                Deadlines
-              </SidebarLink>
-            </li>
-            <li>
-              <SidebarLink
-                selected={view.kind === "timetable"}
-                onSelect={() => setView({ kind: "timetable" })}
-              >
-                Timetable
-              </SidebarLink>
-            </li>
-          </ul>
-        </nav>
-
-        <div className="mt-5 px-3">
-          <p className="px-2 pb-1.5 text-xs text-muted-foreground">Documents</p>
-          <Button
-            variant="outline"
-            className="w-full justify-start"
-            disabled={create.isPending}
-            onClick={createDocument}
-          >
-            New document
-          </Button>
-        </div>
-        <nav
-          aria-label="Documents"
-          className="mt-2 flex-1 overflow-y-auto px-3"
-        >
-          <ul className="grid gap-0.5">
-            {documents.data?.map((document) => (
-              <li key={document.id}>
-                <SidebarLink
-                  selected={document.id === selected?.id}
-                  muted={!document.title}
-                  onSelect={() =>
-                    setView({ kind: "documents", documentId: document.id })
-                  }
-                >
-                  {titleOf(document)}
-                </SidebarLink>
-              </li>
-            ))}
+            {PAGES.map(({ page: target, label, icon: Icon }) => {
+              const count = target === "deadlines" ? dueCount : 0;
+              return (
+                <li key={target}>
+                  <button
+                    type="button"
+                    aria-current={page === target ? "page" : undefined}
+                    aria-label={
+                      count > 0
+                        ? `${label}, ${count} due today or overdue`
+                        : label
+                    }
+                    onClick={() => setPage(target)}
+                    className={cn(
+                      "flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left text-sm outline-none transition-colors hover:bg-sidebar-accent focus-visible:ring-3 focus-visible:ring-ring/50",
+                      page === target && "bg-sidebar-accent font-medium",
+                    )}
+                  >
+                    <Icon
+                      aria-hidden="true"
+                      className="size-4 shrink-0 opacity-70"
+                    />
+                    <span className="min-w-0 flex-1 truncate">{label}</span>
+                    {count > 0 && (
+                      <span
+                        className={cn(
+                          "text-xs tabular-nums text-muted-foreground",
+                          due.overdue.length > 0 && "text-destructive",
+                        )}
+                      >
+                        {count}
+                      </span>
+                    )}
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         </nav>
       </aside>
 
-      <main className="flex-1 overflow-y-auto">
-        {view.kind === "deadlines" && (
-          <DeadlinesView data={data} workspaceId={workspace.id} />
-        )}
-        {view.kind === "timetable" && (
-          <TimetableView data={data} workspaceId={workspace.id} />
-        )}
-        {view.kind === "documents" && (
-          <>
-            {create.isError && (
-              <p role="alert" className="px-12 pt-4 text-sm text-destructive">
-                {create.error.message}
-              </p>
-            )}
-            {documents.isError ? (
-              <Notice
-                message={documents.error.message}
-                action="Try again"
-                onAction={() => documents.refetch()}
-              />
-            ) : selected ? (
-              <DocumentPane
-                key={selected.id}
-                data={data}
-                workspaceId={workspace.id}
-                document={selected}
-              />
-            ) : (
-              documents.isSuccess && (
-                <Notice
-                  title="No documents yet"
-                  message="Create a document to start writing."
-                  action="New document"
-                  onAction={createDocument}
-                />
-              )
-            )}
-          </>
-        )}
-      </main>
-    </div>
-  );
-}
-
-function titleOf(document: DocumentSummary): string {
-  return document.title || "Untitled";
-}
-
-function SidebarLink({
-  selected,
-  muted,
-  onSelect,
-  children,
-}: {
-  selected: boolean;
-  muted?: boolean;
-  onSelect: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      aria-current={selected ? "page" : undefined}
-      onClick={onSelect}
-      className={cn(
-        "w-full truncate rounded-md px-2 py-1.5 text-left text-sm outline-none transition-colors hover:bg-sidebar-accent focus-visible:ring-3 focus-visible:ring-ring/50",
-        selected && "bg-sidebar-accent font-medium",
-        muted && "text-muted-foreground",
-      )}
-    >
-      {children}
-    </button>
-  );
-}
-
-/** A centred message for empty and failed states, with one way forward. */
-function Notice({
-  title,
-  message,
-  action,
-  onAction,
-}: {
-  title?: string;
-  message: string;
-  action?: string;
-  onAction?: () => void;
-}) {
-  return (
-    <div className="flex h-full min-h-64 flex-col items-center justify-center gap-3 p-8 text-center">
-      {title && <h2 className="font-heading text-2xl">{title}</h2>}
-      <p className="text-sm text-muted-foreground">{message}</p>
-      {action && onAction && (
-        <Button variant="outline" onClick={onAction}>
-          {action}
-        </Button>
-      )}
+      <div className="relative min-w-0 flex-1">
+        {/* Keeps the top of the window draggable, where a title bar would be. */}
+        <div
+          data-tauri-drag-region
+          className="absolute inset-x-0 top-0 z-10 h-8"
+        />
+        <main className="h-full overflow-y-auto">
+          {page === "today" && (
+            <TodayView
+              data={data}
+              workspaceId={workspace.id}
+              onOpen={setPage}
+            />
+          )}
+          {page === "deadlines" && (
+            <DeadlinesView data={data} workspaceId={workspace.id} />
+          )}
+          {page === "timetable" && (
+            <TimetableView data={data} workspaceId={workspace.id} />
+          )}
+          {page === "documents" && (
+            <DocumentsView data={data} workspaceId={workspace.id} />
+          )}
+        </main>
+      </div>
     </div>
   );
 }

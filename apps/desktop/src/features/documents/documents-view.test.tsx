@@ -1,6 +1,16 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vitest";
-import { createFakeData, documentNamed, renderApp } from "@/test/fakes";
+import {
+  createFakeData,
+  documentNamed,
+  renderApp as renderWholeApp,
+} from "@/test/fakes";
+
+// Documents are no longer the first page, so open it before each check.
+async function renderApp(data: Parameters<typeof renderWholeApp>[0]) {
+  renderWholeApp(data);
+  fireEvent.click(await screen.findByRole("button", { name: "Documents" }));
+}
 
 function documentLinks() {
   const list = screen.getByRole("navigation", { name: "Documents" });
@@ -14,7 +24,7 @@ function titleInput() {
 }
 
 test("lists the workspace's documents and opens the newest one", async () => {
-  renderApp(
+  await renderApp(
     createFakeData({
       documents: [documentNamed("Trip plan"), documentNamed("Reading list")],
     }),
@@ -27,7 +37,7 @@ test("lists the workspace's documents and opens the newest one", async () => {
 });
 
 test("an empty workspace invites the person to create a document", async () => {
-  renderApp(createFakeData());
+  await renderApp(createFakeData());
 
   expect(
     await screen.findByRole("heading", { name: "No documents yet" }),
@@ -36,7 +46,7 @@ test("an empty workspace invites the person to create a document", async () => {
 });
 
 test("a new document opens at the top of the list, ready to be named", async () => {
-  renderApp(createFakeData({ documents: [documentNamed("Trip plan")] }));
+  await renderApp(createFakeData({ documents: [documentNamed("Trip plan")] }));
   await screen.findByRole("button", { name: "Trip plan" });
 
   fireEvent.click(screen.getByRole("button", { name: "New document" }));
@@ -49,7 +59,7 @@ test("a new document opens at the top of the list, ready to be named", async () 
 });
 
 test("opening another document shows its title", async () => {
-  renderApp(
+  await renderApp(
     createFakeData({
       documents: [documentNamed("Trip plan"), documentNamed("Reading list")],
     }),
@@ -66,7 +76,7 @@ test("opening another document shows its title", async () => {
 });
 
 test("renaming a document updates the list", async () => {
-  renderApp(createFakeData({ documents: [documentNamed("Trip plan")] }));
+  await renderApp(createFakeData({ documents: [documentNamed("Trip plan")] }));
   await screen.findByRole("button", { name: "Trip plan" });
 
   fireEvent.change(titleInput(), { target: { value: "Lisbon trip" } });
@@ -76,7 +86,7 @@ test("renaming a document updates the list", async () => {
 });
 
 test("a rename that fails says so and puts the old title back in the list", async () => {
-  renderApp(
+  await renderApp(
     createFakeData({
       documents: [documentNamed("Trip plan")],
       failing: ["rename"],
@@ -93,7 +103,7 @@ test("a rename that fails says so and puts the old title back in the list", asyn
 });
 
 test("deleting asks first, and cancelling keeps the document", async () => {
-  renderApp(createFakeData({ documents: [documentNamed("Trip plan")] }));
+  await renderApp(createFakeData({ documents: [documentNamed("Trip plan")] }));
   await screen.findByRole("button", { name: "Trip plan" });
 
   fireEvent.click(screen.getByRole("button", { name: "Delete" }));
@@ -104,7 +114,7 @@ test("deleting asks first, and cancelling keeps the document", async () => {
 });
 
 test("confirming a delete removes the document and opens the next one", async () => {
-  renderApp(
+  await renderApp(
     createFakeData({
       documents: [documentNamed("Trip plan"), documentNamed("Reading list")],
     }),
@@ -119,7 +129,7 @@ test("confirming a delete removes the document and opens the next one", async ()
 });
 
 test("a failed load explains itself and offers a retry", async () => {
-  renderApp(createFakeData({ documents: [], failing: ["list"] }));
+  await renderApp(createFakeData({ documents: [], failing: ["list"] }));
 
   expect(
     await screen.findByText("Could not load your documents."),

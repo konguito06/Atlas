@@ -38,7 +38,7 @@ export function DocumentPane({
   const error = rename.error ?? remove.error;
 
   return (
-    <article className="mx-auto w-full max-w-2xl px-12 pt-10 pb-16">
+    <article className="mx-auto w-full max-w-2xl px-12 pt-12 pb-16">
       <div className="flex min-h-8 items-center justify-end gap-2">
         {confirmingDelete ? (
           <>

@@ -1,7 +1,6 @@
 import {
   type AtlasData,
   type Deadline,
-  describeDueDate,
   groupDeadlines,
   toLocalDate,
   useCreateDeadline,
@@ -11,8 +10,8 @@ import {
 } from "@atlas/core";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { DeadlineForm } from "./deadline-form";
+import { DeadlineRow } from "./deadline-row";
 
 export function DeadlinesView({
   data,
@@ -54,51 +53,22 @@ export function DeadlinesView({
           />
         </li>
       ) : (
-        <li key={deadline.id} className="flex items-center gap-3 py-2">
-          <input
-            type="checkbox"
-            checked={deadline.completed}
-            aria-label={`Mark ${deadline.title} as ${deadline.completed ? "not done" : "done"}`}
-            onChange={() =>
-              update.mutate({
-                id: deadline.id,
-                completed: !deadline.completed,
-              })
-            }
-            className="size-4 shrink-0 accent-primary"
-          />
-          <span
-            className={cn(
-              "min-w-0 flex-1 truncate text-sm",
-              deadline.completed && "text-muted-foreground line-through",
-            )}
-          >
-            {deadline.title}
-          </span>
-          <span
-            className={cn(
-              "shrink-0 text-sm text-muted-foreground tabular-nums",
-              overdue && "text-destructive",
-            )}
-          >
-            {describeDueDate(deadline.dueDate, today)}
-            {deadline.dueTime && ` at ${deadline.dueTime}`}
-          </span>
-          <Button
-            variant="ghost"
-            size="sm"
-            aria-label={`Edit ${deadline.title}`}
-            onClick={() => setEditingId(deadline.id)}
-          >
-            Edit
-          </Button>
-        </li>
+        <DeadlineRow
+          key={deadline.id}
+          deadline={deadline}
+          today={today}
+          overdue={overdue}
+          onToggle={() =>
+            update.mutate({ id: deadline.id, completed: !deadline.completed })
+          }
+          onEdit={() => setEditingId(deadline.id)}
+        />
       ),
     );
   }
 
   return (
-    <section className="mx-auto w-full max-w-2xl px-12 pt-10 pb-16">
+    <section className="mx-auto w-full max-w-2xl px-12 pt-14 pb-16">
       <h1 className="font-heading text-4xl tracking-tight">Deadlines</h1>
 
       <div className="mt-8">

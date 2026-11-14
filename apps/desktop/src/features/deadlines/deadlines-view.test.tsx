@@ -34,7 +34,7 @@ async function openDeadlines(deadlines: Deadline[] = [], failing = false) {
       failing: failing ? ["saveDeadline"] : [],
     }),
   );
-  fireEvent.click(await screen.findByRole("button", { name: "Deadlines" }));
+  fireEvent.click(await screen.findByRole("button", { name: /^Deadlines/ }));
   await screen.findByRole("heading", { name: "Deadlines" });
 }
 
