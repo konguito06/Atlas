@@ -1,26 +1,26 @@
 import {
   type AtlasData,
-  type Deadline,
   DISPLAY_LOCALE,
   dayProgress,
   daySpan,
-  deadlinesDueSoon,
   describeMinutes,
   describeNextUp,
   greeting,
   minutesOfDay,
   minutesToTime,
+  type Task,
+  tasksDueSoon,
   todaysEntries,
   toLocalDate,
   useAllTimetableEntries,
-  useDeadlines,
   useDocuments,
+  useTasks,
   useTimetables,
-  useUpdateDeadline,
+  useUpdateTask,
   weekOverview,
 } from "@atlas/core";
 import { Button } from "@/components/ui/button";
-import { DeadlineRow } from "@/features/deadlines/deadline-row";
+import { TaskRow } from "@/features/tasks/task-row";
 import { useNow } from "@/lib/use-now";
 import { cn } from "@/lib/utils";
 import { DayLine } from "./day-line";
@@ -39,7 +39,7 @@ interface TodayViewProps {
   data: AtlasData;
   workspaceId: string;
   /** Jumps to the page where the full list lives. */
-  onOpen: (page: "deadlines" | "timetable" | "documents") => void;
+  onOpen: (page: "tasks" | "timetable" | "documents") => void;
   onOpenDocument: (documentId: string) => void;
 }
 
@@ -54,18 +54,18 @@ export function TodayView({
   const today = toLocalDate(now);
   const timetables = useTimetables(data, workspaceId);
   const allEntries = useAllTimetableEntries(data, timetables.data ?? []);
-  const deadlines = useDeadlines(data, workspaceId);
+  const tasks = useTasks(data, workspaceId);
   const documents = useDocuments(data, workspaceId);
-  const update = useUpdateDeadline(data, workspaceId);
+  const update = useUpdateTask(data, workspaceId);
 
   const entries = todaysEntries(timetables.data ?? [], allEntries.entries, now);
   const span = daySpan(entries);
   const progress = dayProgress(entries, now);
-  const soon = deadlinesDueSoon(deadlines.data ?? [], today);
+  const soon = tasksDueSoon(tasks.data ?? [], today);
   const week = weekOverview(
     timetables.data ?? [],
     allEntries.entries,
-    deadlines.data ?? [],
+    tasks.data ?? [],
     now,
   );
   const nothingDue =
@@ -76,19 +76,22 @@ export function TodayView({
   const error =
     timetables.error ??
     allEntries.error ??
-    deadlines.error ??
+    tasks.error ??
     documents.error ??
     update.error;
 
-  function row(deadline: Deadline, overdue = false) {
+  function row(task: Task, overdue = false) {
     return (
-      <DeadlineRow
-        key={deadline.id}
-        deadline={deadline}
+      <TaskRow
+        key={task.id}
+        task={task}
         today={today}
         overdue={overdue}
         onToggle={() =>
-          update.mutate({ id: deadline.id, completed: !deadline.completed })
+          update.mutate({
+            id: task.id,
+            status: task.status === "done" ? "todo" : "done",
+          })
         }
       />
     );
@@ -208,24 +211,24 @@ export function TodayView({
         </Panel>
 
         <Panel title="Due soon" className="lg:col-span-5">
-          {deadlines.isSuccess && nothingDue ? (
+          {tasks.isSuccess && nothingDue ? (
             <p className="text-sm text-muted-foreground">
               Nothing is due in the next week.
             </p>
           ) : (
             <ul aria-label="Due soon" className="-mt-2 divide-y divide-border">
-              {soon.overdue.map((deadline) => row(deadline, true))}
-              {soon.today.map((deadline) => row(deadline))}
-              {soon.thisWeek.map((deadline) => row(deadline))}
+              {soon.overdue.map((task) => row(task, true))}
+              {soon.today.map((task) => row(task))}
+              {soon.thisWeek.map((task) => row(task))}
             </ul>
           )}
           <Button
             variant="outline"
             size="sm"
             className="mt-4"
-            onClick={() => onOpen("deadlines")}
+            onClick={() => onOpen("tasks")}
           >
-            {deadlines.data?.length ? "All deadlines" : "Add a deadline"}
+            {tasks.data?.length ? "All tasks" : "Add a task"}
           </Button>
         </Panel>
 

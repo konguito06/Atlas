@@ -62,7 +62,7 @@ export function WeekStrip({ days }: { days: WeekDay[] }) {
         })}
       </ol>
       <p className="mt-3 text-xs text-muted-foreground">
-        Bars show scheduled time. Numbers show deadlines due.
+        Bars show scheduled time. Numbers show tasks due.
       </p>
     </>
   );

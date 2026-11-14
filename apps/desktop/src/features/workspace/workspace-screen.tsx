@@ -1,23 +1,23 @@
 import {
   APP_NAME,
   type AtlasData,
-  groupDeadlines,
+  groupTasks,
   toLocalDate,
-  useDeadlines,
+  useTasks,
   useWorkspaces,
   type Workspace,
 } from "@atlas/core";
 import {
   CalendarDays,
   FileText,
-  Flag,
+  ListTodo,
   type LucideIcon,
   Sun,
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { DeadlinesView } from "@/features/deadlines/deadlines-view";
 import { DocumentsView } from "@/features/documents/documents-view";
+import { TasksView } from "@/features/tasks/tasks-view";
 import { TimetableView } from "@/features/timetable/timetable-view";
 import { TodayView } from "@/features/today/today-view";
 import { useNow } from "@/lib/use-now";
@@ -45,11 +45,11 @@ export function WorkspaceScreen({ data }: { data: AtlasData }) {
   return <WorkspaceLayout data={data} workspace={workspace} />;
 }
 
-type Page = "today" | "deadlines" | "timetable" | "documents";
+type Page = "today" | "tasks" | "timetable" | "documents";
 
 const PAGES: Array<{ page: Page; label: string; icon: LucideIcon }> = [
   { page: "today", label: "Today", icon: Sun },
-  { page: "deadlines", label: "Deadlines", icon: Flag },
+  { page: "tasks", label: "Tasks", icon: ListTodo },
   { page: "timetable", label: "Timetable", icon: CalendarDays },
   { page: "documents", label: "Documents", icon: FileText },
 ];
@@ -64,9 +64,9 @@ function WorkspaceLayout({
   const [page, setPage] = useState<Page>("today");
   // Set when a document is opened from another page, so Documents shows it.
   const [documentToOpen, setDocumentToOpen] = useState<string>();
-  const deadlines = useDeadlines(data, workspace.id);
+  const tasks = useTasks(data, workspace.id);
   const today = toLocalDate(useNow());
-  const due = groupDeadlines(deadlines.data ?? [], today);
+  const due = groupTasks(tasks.data ?? [], today);
   const dueCount = due.overdue.length + due.today.length;
 
   return (
@@ -81,7 +81,7 @@ function WorkspaceLayout({
         <nav aria-label="Pages" className="px-3">
           <ul className="grid gap-0.5">
             {PAGES.map(({ page: target, label, icon: Icon }) => {
-              const count = target === "deadlines" ? dueCount : 0;
+              const count = target === "tasks" ? dueCount : 0;
               return (
                 <li key={target}>
                   <button
@@ -139,8 +139,8 @@ function WorkspaceLayout({
               }}
             />
           )}
-          {page === "deadlines" && (
-            <DeadlinesView data={data} workspaceId={workspace.id} />
+          {page === "tasks" && (
+            <TasksView data={data} workspaceId={workspace.id} />
           )}
           {page === "timetable" && (
             <TimetableView data={data} workspaceId={workspace.id} />

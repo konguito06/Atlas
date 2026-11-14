@@ -1,7 +1,12 @@
-import type { Deadline, Timetable, TimetableEntry } from "@atlas/core";
+import type { Task, Timetable, TimetableEntry } from "@atlas/core";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { createFakeData, documentNamed, renderApp } from "@/test/fakes";
+import {
+  createFakeData,
+  documentNamed,
+  renderApp,
+  taskNamed,
+} from "@/test/fakes";
 
 // Pin the clock: Friday 13 November 2026, 11:30.
 beforeEach(() => {
@@ -39,20 +44,8 @@ function entry(
   };
 }
 
-function deadline(
-  title: string,
-  dueDate: string,
-  extra: Partial<Deadline> = {},
-): Deadline {
-  return {
-    id: title,
-    title,
-    dueDate,
-    dueTime: null,
-    completed: false,
-    ...extra,
-  };
-}
+const deadline = (title: string, dueDate: string, extra: Partial<Task> = {}) =>
+  taskNamed(title, { dueDate, ...extra });
 
 function rowsIn(name: string) {
   const list = screen.queryByRole("list", { name });
@@ -128,7 +121,7 @@ test("a day with nothing on the timetable says so", async () => {
 test("shows what is overdue, due today and due this week, and nothing later", async () => {
   renderApp(
     createFakeData({
-      deadlines: [
+      tasks: [
         deadline("Next month", "2026-12-20"),
         deadline("Lab report", "2026-11-16"),
         deadline("Essay", "2026-11-13", { dueTime: "23:59" }),
@@ -146,8 +139,8 @@ test("shows what is overdue, due today and due this week, and nothing later", as
   );
 });
 
-test("a deadline can be ticked off from here", async () => {
-  renderApp(createFakeData({ deadlines: [deadline("Essay", "2026-11-13")] }));
+test("a task can be ticked off from here", async () => {
+  renderApp(createFakeData({ tasks: [deadline("Essay", "2026-11-13")] }));
 
   fireEvent.click(await screen.findByLabelText("Mark Essay as done"));
 
@@ -156,22 +149,18 @@ test("a deadline can be ticked off from here", async () => {
   ).toBeDefined();
 });
 
-test("with nothing due, the button leads to adding a deadline", async () => {
+test("with nothing due, the button leads to adding a task", async () => {
   renderApp(createFakeData());
 
-  fireEvent.click(
-    await screen.findByRole("button", { name: "Add a deadline" }),
-  );
+  fireEvent.click(await screen.findByRole("button", { name: "Add a task" }));
 
-  expect(
-    await screen.findByRole("heading", { name: "Deadlines" }),
-  ).toBeDefined();
+  expect(await screen.findByRole("heading", { name: "Tasks" })).toBeDefined();
 });
 
-test("the sidebar counts deadlines that are due today or overdue", async () => {
+test("the sidebar counts tasks that are due today or overdue", async () => {
   renderApp(
     createFakeData({
-      deadlines: [
+      tasks: [
         deadline("Library book", "2026-11-12"),
         deadline("Essay", "2026-11-13"),
         deadline("Lab report", "2026-11-16"),
@@ -181,7 +170,7 @@ test("the sidebar counts deadlines that are due today or overdue", async () => {
 
   expect(
     await screen.findByRole("button", {
-      name: "Deadlines, 2 due today or overdue",
+      name: "Tasks, 2 due today or overdue",
     }),
   ).toBeDefined();
 });
@@ -212,7 +201,7 @@ test("sums up the day in figures and a progress ring", async () => {
         entry("Databases", 660, 750),
         entry("Weights", 1080, 1140),
       ],
-      deadlines: [
+      tasks: [
         deadline("Library book", "2026-11-12"),
         deadline("Essay", "2026-11-13"),
         deadline("Quiz", "2026-11-13"),
@@ -248,7 +237,7 @@ test("lays out the week with what each day holds", async () => {
         entry("Networks", 540, 630),
         entry("Monday class", 540, 600, { day: 1 }),
       ],
-      deadlines: [deadline("Essay", "2026-11-13")],
+      tasks: [deadline("Essay", "2026-11-13")],
     }),
   );
 

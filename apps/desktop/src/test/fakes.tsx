@@ -1,7 +1,8 @@
 import type {
   AtlasData,
-  Deadline,
   DocumentSummary,
+  Project,
+  Task,
   Timetable,
   TimetableEntry,
 } from "@atlas/core";
@@ -20,17 +21,37 @@ export function documentNamed(title: string, id = title): DocumentSummary {
 
 interface FakeSeed {
   documents?: DocumentSummary[];
-  deadlines?: Deadline[];
+  tasks?: Task[];
+  projects?: Project[];
   timetables?: Timetable[];
   entries?: TimetableEntry[];
   /** Operations that should reject, to exercise error states. */
-  failing?: Array<"list" | "rename" | "saveDeadline" | "saveEntry">;
+  failing?: Array<"list" | "rename" | "saveTask" | "saveEntry">;
+}
+
+/** A task for tests: only what matters to the test needs passing. */
+export function taskNamed(title: string, extra: Partial<Task> = {}): Task {
+  return {
+    id: title,
+    title,
+    notes: "",
+    status: "todo",
+    priority: "none",
+    dueDate: null,
+    dueTime: null,
+    projectId: null,
+    parentId: null,
+    completedAt: null,
+    createdAt: "2026-11-01T10:00:00.000Z",
+    ...extra,
+  };
 }
 
 /** Keeps everything in memory, behaving like the real data layer. */
 export function createFakeData(seed: FakeSeed = {}): AtlasData {
   let documents = [...(seed.documents ?? [])];
-  let deadlines = [...(seed.deadlines ?? [])];
+  let tasks = [...(seed.tasks ?? [])];
+  let projects = [...(seed.projects ?? [])];
   let timetables = [...(seed.timetables ?? [])];
   let entries = [...(seed.entries ?? [])];
   const failing = seed.failing ?? [];
@@ -62,29 +83,58 @@ export function createFakeData(seed: FakeSeed = {}): AtlasData {
       documents = documents.filter((document) => document.id !== id);
     },
 
-    listDeadlines: async () => deadlines,
-    createDeadline: async ({ id, title, dueDate, dueTime }) => {
-      if (failing.includes("saveDeadline")) {
-        throw new Error("Could not add the deadline.");
+    listTasks: async () => tasks,
+    createTask: async ({ id, workspaceId: _workspaceId, ...draft }) => {
+      if (failing.includes("saveTask")) {
+        throw new Error("Could not add the task.");
       }
-      const created = { id, title, dueDate, dueTime, completed: false };
-      deadlines = [...deadlines, created];
+      const created: Task = {
+        id,
+        ...draft,
+        status: "todo",
+        completedAt: null,
+        createdAt: new Date().toISOString(),
+      };
+      tasks = [...tasks, created];
       return created;
     },
-    updateDeadline: async (id, change) => {
-      if (failing.includes("saveDeadline")) {
-        throw new Error("Could not save the deadline.");
+    updateTask: async (id, change) => {
+      const current = tasks.find((task) => task.id === id);
+      if (!current || failing.includes("saveTask")) {
+        throw new Error("Could not save the task.");
       }
-      const current = deadlines.find((deadline) => deadline.id === id);
-      if (!current) throw new Error("Could not save the deadline.");
-      const saved = { ...current, ...change };
-      deadlines = deadlines.map((deadline) =>
-        deadline.id === id ? saved : deadline,
+      const saved: Task = {
+        ...current,
+        ...change,
+        ...(change.status !== undefined && {
+          completedAt:
+            change.status === "done" ? new Date().toISOString() : null,
+        }),
+      };
+      tasks = tasks.map((task) => (task.id === id ? saved : task));
+      return saved;
+    },
+    deleteTask: async (id) => {
+      tasks = tasks.filter((task) => task.id !== id && task.parentId !== id);
+    },
+    listProjects: async () => projects,
+    createProject: async ({ id, name, color }) => {
+      const created = { id, name, color };
+      projects = [...projects, created];
+      return created;
+    },
+    updateProject: async (id, draft) => {
+      const saved = { id, ...draft };
+      projects = projects.map((project) =>
+        project.id === id ? saved : project,
       );
       return saved;
     },
-    deleteDeadline: async (id) => {
-      deadlines = deadlines.filter((deadline) => deadline.id !== id);
+    deleteProject: async (id) => {
+      projects = projects.filter((project) => project.id !== id);
+      tasks = tasks.map((task) =>
+        task.projectId === id ? { ...task, projectId: null } : task,
+      );
     },
 
     listTimetables: async () => timetables,
