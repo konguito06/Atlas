@@ -8,7 +8,9 @@ ATLAS is a cross-platform productivity app for macOS (desktop), iPhone and iPad.
 
 Current focus: build each feature on desktop first. Mobile gets the feature afterwards, so keep logic in shared packages and do not touch `apps/mobile` unless asked.
 
-What exists: the database with its access rules, sign-in by emailed six-digit code, the document format, and on desktop the sign-in screen, the document list (create, rename, delete, open), deadlines, and weekly timetables. Mobile is still an empty shell. There is no editor, sync or AI code.
+What exists on desktop: a Today overview (the first page), deadlines, weekly timetables, and a document list (create, rename, delete, open). There is no account: the app opens straight in and saves everything in a SQLite database on the Mac. Mobile is still an empty shell. There is no editor, sync or AI code.
+
+Parked, not used by the app: the Supabase backend (`packages/db`, `supabase/`), the server-backed data layer and the sign-in logic. They stay tested as the future sync target (see `docs/decisions/0002-data-on-the-device.md`).
 
 Architectural decisions are recorded in `docs/decisions/`. Read the relevant one before changing what it covers, and add a new record when a decision changes.
 
@@ -38,7 +40,8 @@ pnpm format        # Biome check --write
 pnpm typecheck
 pnpm test
 
-# Database (Docker Desktop must be running)
+# Parked server backend only; the app itself needs none of this.
+# Docker Desktop must be running.
 pnpm db:start      # local Supabase; Studio at http://127.0.0.1:54323
 pnpm db:stop
 pnpm db:reset      # rebuild the local database from supabase/migrations
@@ -64,16 +67,25 @@ If `cargo` is not found, prefix the command with `PATH="/opt/homebrew/opt/rustup
 - Every file under `apps/mobile/src/app` becomes a route. Mobile tests live in `apps/mobile/src/__tests__`.
 - pnpm rejects package versions published in the last day and blocks install scripts. Pin the previous version, or decide the script in `allowBuilds`, rather than disabling the check.
 - Add shadcn components with `pnpm dlx shadcn@latest add <name> --overwrite` from `apps/desktop` (without `--overwrite` it stops at a prompt), then install any import it left unresolved and run `pnpm format`.
-- The desktop app reads the Supabase address and publishable key from `apps/desktop/.env.local` (see `.env.example`; values come from `pnpm exec supabase status`).
+- The desktop app's data is `~/Library/Application Support/com.konguito06.atlas/atlas.db`. Its schema lives in `packages/core/src/local/migrations.ts`: never edit a shipped entry, add a new one.
+- Any change to what the data layer does goes in both `createLocalAtlasData` and `createAtlasData`, and in the shared tests in `packages/core/test-support/data-contract.ts`, which run against both.
+- The on-device driver pools connections, so do not rely on transactions or foreign keys across calls; keep each `execute` self-contained.
 - Desktop code is grouped by feature in `apps/desktop/src/features/<feature>`. Screens take the Supabase client as a prop, so tests pass a fake one.
 - Shared React hooks live in `@atlas/core`, which lists React and TanStack Query as peer dependencies.
 - Deadline dates and timetable times have no time zone: dates are `YYYY-MM-DD` strings, clock times are `HH:MM`, timetable times are minutes after midnight. Do not convert them through `Date` in UTC.
 - The interface is English, so dates are formatted with `DISPLAY_LOCALE` from `@atlas/core`, never the device locale.
 - Validation rules and their messages live in `@atlas/core` (`validateDeadline`, `validateTimetable`, `validateTimetableEntry`); forms call them and show the message. The database checks are a backstop.
-- Screens read and write through the `AtlasData` interface from `@atlas/core`, never through the Supabase client directly. Desktop tests use the in-memory fakes in `apps/desktop/src/test/fakes.tsx`.
+- Screens read and write through the `AtlasData` interface from `@atlas/core`, never through a database client directly. Desktop tests use the in-memory fakes in `apps/desktop/src/test/fakes.tsx`.
 - In `packages/core`, unit tests sit next to the code in `src/` (`pnpm test`); tests that need the local database live in `tests/` (`pnpm db:test`).
 
-## Database
+## Look and feel
+
+- Dark mode follows the Mac's appearance through `prefers-color-scheme`; there is no `.dark` class. Colours come from the tokens in `apps/desktop/src/index.css`, so use `bg-background`, `text-muted-foreground` and so on, and give any raw Tailwind colour a `dark:` partner.
+- `signal` (the warm orange) is reserved for "now". Do not use it for decoration or for errors (`destructive` is for those).
+- Titles use `font-heading` (the system serif); everything else is the system sans.
+- The window has no title bar. Elements with `data-tauri-drag-region` at the top of the sidebar and main area drag the window, so keep interactive content below the first 2rem.
+
+## Server database (parked)
 
 - After any schema change run `pnpm db:reset` and `pnpm db:types`. Two migrations generated in the same second get the same timestamp: rename the second file and its `tag` in `supabase/migrations/meta/_journal.json`.
 - Tables and columns are defined in `packages/db/src/schema.ts`. Policies, grants, functions and triggers are hand-written SQL migrations. Never edit a migration that has been applied; add a new one.
