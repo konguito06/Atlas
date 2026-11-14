@@ -1,8 +1,6 @@
 import {
-  type AtlasClient,
   type AtlasData,
   type DocumentSummary,
-  signOut,
   useCreateDocument,
   useDocuments,
   useWorkspaces,
@@ -16,12 +14,10 @@ import { TimetableView } from "@/features/timetable/timetable-view";
 import { cn } from "@/lib/utils";
 
 interface WorkspaceScreenProps {
-  client: AtlasClient;
   data: AtlasData;
-  email: string;
 }
 
-export function WorkspaceScreen({ client, data, email }: WorkspaceScreenProps) {
+export function WorkspaceScreen({ data }: WorkspaceScreenProps) {
   const workspaces = useWorkspaces(data);
 
   if (workspaces.isPending) {
@@ -41,14 +37,7 @@ export function WorkspaceScreen({ client, data, email }: WorkspaceScreenProps) {
   if (!workspace) {
     return <Notice message="You are not a member of any workspace." />;
   }
-  return (
-    <WorkspaceLayout
-      client={client}
-      data={data}
-      email={email}
-      workspace={workspace}
-    />
-  );
+  return <WorkspaceLayout data={data} workspace={workspace} />;
 }
 
 /** What the main pane shows. A document view may not name a document yet. */
@@ -58,15 +47,12 @@ type View =
   | { kind: "timetable" };
 
 function WorkspaceLayout({
-  client,
   data,
-  email,
   workspace,
 }: WorkspaceScreenProps & { workspace: Workspace }) {
   const documents = useDocuments(data, workspace.id);
   const create = useCreateDocument(data, workspace.id);
   const [view, setView] = useState<View>({ kind: "documents" });
-  const [signOutError, setSignOutError] = useState<string>();
 
   // Falls back to the newest document, so something is open after a
   // delete and on first load.
@@ -81,13 +67,6 @@ function WorkspaceLayout({
       onSuccess: (created) =>
         setView({ kind: "documents", documentId: created.id }),
     });
-  }
-
-  async function handleSignOut() {
-    setSignOutError(undefined);
-    const result = await signOut(client);
-    // On success the session listener replaces this screen.
-    if (!result.ok) setSignOutError(result.message);
   }
 
   return (
@@ -149,23 +128,6 @@ function WorkspaceLayout({
             ))}
           </ul>
         </nav>
-
-        <div className="border-t border-sidebar-border px-3 py-3">
-          <p className="truncate px-1 text-xs text-muted-foreground">{email}</p>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="mt-1 w-full justify-start"
-            onClick={handleSignOut}
-          >
-            Sign out
-          </Button>
-          {signOutError && (
-            <p role="alert" className="px-1 text-xs text-destructive">
-              {signOutError}
-            </p>
-          )}
-        </div>
       </aside>
 
       <main className="flex-1 overflow-y-auto">

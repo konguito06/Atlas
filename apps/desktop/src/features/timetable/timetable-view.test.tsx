@@ -1,7 +1,7 @@
 import type { Timetable, TimetableEntry } from "@atlas/core";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vitest";
-import { createFakeData, renderSignedIn } from "@/test/fakes";
+import { createFakeData, renderApp } from "@/test/fakes";
 
 const semester: Timetable = {
   id: "timetable-1",
@@ -31,7 +31,7 @@ function entry(
 async function openTimetable(
   seed: { timetables?: Timetable[]; entries?: TimetableEntry[] } = {},
 ) {
-  renderSignedIn(createFakeData(seed));
+  renderApp(createFakeData(seed));
   fireEvent.click(await screen.findByRole("button", { name: "Timetable" }));
 }
 

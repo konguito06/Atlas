@@ -1,7 +1,7 @@
 import type { Deadline } from "@atlas/core";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { createFakeData, renderSignedIn } from "@/test/fakes";
+import { createFakeData, renderApp } from "@/test/fakes";
 
 // The screen sorts by "today", so pin it: Friday 13 November 2026.
 beforeEach(() => {
@@ -28,7 +28,7 @@ function deadline(
 }
 
 async function openDeadlines(deadlines: Deadline[] = [], failing = false) {
-  renderSignedIn(
+  renderApp(
     createFakeData({
       deadlines,
       failing: failing ? ["saveDeadline"] : [],

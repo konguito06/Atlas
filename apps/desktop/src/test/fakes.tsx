@@ -1,5 +1,4 @@
 import type {
-  AtlasClient,
   AtlasData,
   Deadline,
   DocumentSummary,
@@ -8,47 +7,7 @@ import type {
 } from "@atlas/core";
 import { QueryClient } from "@tanstack/react-query";
 import { render } from "@testing-library/react";
-import { vi } from "vitest";
 import { App } from "../App";
-
-export const VALID_CODE = "481902";
-
-type FakeSession = { user: { email: string } } | null;
-type SessionListener = (event: string, session: FakeSession) => void;
-
-/** Stands in for Supabase auth: holds one session and accepts one code. */
-export function createFakeClient({ signedInAs }: { signedInAs?: string } = {}) {
-  let listener: SessionListener = () => {};
-
-  const auth = {
-    onAuthStateChange: vi.fn((callback: SessionListener) => {
-      listener = callback;
-      queueMicrotask(() =>
-        callback(
-          "INITIAL_SESSION",
-          signedInAs ? { user: { email: signedInAs } } : null,
-        ),
-      );
-      return { data: { subscription: { unsubscribe: vi.fn() } } };
-    }),
-    signInWithOtp: vi.fn(async (_request: { email: string }) => ({
-      error: null,
-    })),
-    verifyOtp: vi.fn(async (request: { email: string; token: string }) => {
-      if (request.token !== VALID_CODE) {
-        return { error: { code: "otp_expired", status: 403 } };
-      }
-      listener("SIGNED_IN", { user: { email: request.email } });
-      return { error: null };
-    }),
-    signOut: vi.fn(async () => {
-      listener("SIGNED_OUT", null);
-      return { error: null };
-    }),
-  };
-
-  return { client: { auth } as unknown as AtlasClient, auth };
-}
 
 export function documentNamed(title: string, id = title): DocumentSummary {
   return {
@@ -169,12 +128,10 @@ export function createFakeData(seed: FakeSeed = {}): AtlasData {
   };
 }
 
-/** Renders the whole app for someone who is already signed in. */
-export function renderSignedIn(data: AtlasData) {
-  const { client, auth } = createFakeClient({ signedInAs: "ana@example.com" });
+/** Renders the whole app over the given data. */
+export function renderApp(data: AtlasData) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
-  render(<App client={client} data={data} queryClient={queryClient} />);
-  return { auth };
+  render(<App data={data} queryClient={queryClient} />);
 }

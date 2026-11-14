@@ -1,50 +1,22 @@
-import {
-  type AtlasClient,
-  type AtlasData,
-  createAtlasData,
-  useSession,
-} from "@atlas/core";
+import type { AtlasData } from "@atlas/core";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
-import { SignInScreen } from "@/features/auth/sign-in-screen";
+import { useState } from "react";
 import { WorkspaceScreen } from "@/features/workspace/workspace-screen";
 
 interface AppProps {
-  client: AtlasClient;
-  /** Tests pass in-memory versions of these two. */
-  data?: AtlasData;
+  data: AtlasData;
+  /** Tests pass their own, with retries off. */
   queryClient?: QueryClient;
 }
 
-export function App({ client, data, queryClient }: AppProps) {
-  const session = useSession(client);
+export function App({ data, queryClient }: AppProps) {
   const [ownQueryClient] = useState(
     () => new QueryClient({ defaultOptions: { queries: { retry: 1 } } }),
   );
-  const activeQueryClient = queryClient ?? ownQueryClient;
-  const atlasData = useMemo(
-    () => data ?? createAtlasData(client),
-    [data, client],
-  );
 
-  // Someone else may sign in next, so cached data must not outlive a session.
-  useEffect(() => {
-    if (session.status === "signed-out") {
-      activeQueryClient.clear();
-    }
-  }, [session.status, activeQueryClient]);
-
-  // Render nothing while the stored session is read, to avoid flashing the
-  // sign-in form at someone who is already signed in.
-  if (session.status === "loading") {
-    return null;
-  }
-  if (session.status === "signed-out") {
-    return <SignInScreen client={client} />;
-  }
   return (
-    <QueryClientProvider client={activeQueryClient}>
-      <WorkspaceScreen client={client} data={atlasData} email={session.email} />
+    <QueryClientProvider client={queryClient ?? ownQueryClient}>
+      <WorkspaceScreen data={data} />
     </QueryClientProvider>
   );
 }
