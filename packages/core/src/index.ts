@@ -10,6 +10,7 @@ export * from "./local/migrations";
 export * from "./local/sql-database";
 export * from "./supabase";
 export * from "./timetables";
+export * from "./today";
 export * from "./use-deadlines";
 export * from "./use-documents";
 export * from "./use-session";

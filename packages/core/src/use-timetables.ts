@@ -1,4 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQueries,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import type {
   Timetable,
   TimetableEntry,
@@ -69,6 +74,24 @@ export function useTimetableEntries(data: TimetablesData, timetableId: string) {
   return useQuery({
     queryKey: entriesKey(timetableId),
     queryFn: () => data.listTimetableEntries(timetableId),
+  });
+}
+
+/** The entries of several timetables at once, for views that span them. */
+export function useAllTimetableEntries(
+  data: TimetablesData,
+  timetables: Timetable[],
+) {
+  return useQueries({
+    queries: timetables.map((timetable) => ({
+      queryKey: entriesKey(timetable.id),
+      queryFn: () => data.listTimetableEntries(timetable.id),
+    })),
+    combine: (results) => ({
+      entries: results.flatMap((result) => result.data ?? []),
+      isPending: results.some((result) => result.isPending),
+      error: results.find((result) => result.error)?.error ?? null,
+    }),
   });
 }
 
