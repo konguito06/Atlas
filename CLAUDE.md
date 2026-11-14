@@ -8,7 +8,7 @@ ATLAS is a cross-platform productivity app for macOS (desktop), iPhone and iPad.
 
 Current focus: build each feature on desktop first. Mobile gets the feature afterwards, so keep logic in shared packages and do not touch `apps/mobile` unless asked.
 
-What exists on desktop: a Today overview (the first page), deadlines, weekly timetables, and a document list (create, rename, delete, open). There is no account: the app opens straight in and saves everything in a SQLite database on the Mac. Mobile is still an empty shell. There is no editor, sync or AI code.
+What exists on desktop: a Today overview (the first page: clock, day line, progress ring, figures, due-soon list, week strip, recent documents), deadlines, weekly timetables, and a document list (create, rename, delete, open). There is no account: the app opens straight in and saves everything in a SQLite database on the Mac. Mobile is still an empty shell. There is no editor, sync or AI code.
 
 Parked, not used by the app: the Supabase backend (`packages/db`, `supabase/`), the server-backed data layer and the sign-in logic. They stay tested as the future sync target (see `docs/decisions/0002-data-on-the-device.md`).
 
