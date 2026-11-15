@@ -4,7 +4,7 @@ import {
   type AssistantStatus,
   useAssistantConversation,
 } from "@atlas/core";
-import { ArrowUp, Mic } from "lucide-react";
+import { ArrowUp, Mic, SquarePen } from "lucide-react";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,6 +24,14 @@ const STATUS_TEXT: Record<AssistantStatus, string> = {
   thinking: "Thinking…",
   responding: "Answering…",
 };
+
+/** Questions offered before anything has been asked. */
+const SUGGESTIONS = [
+  "What do I have tomorrow?",
+  "When is my next exam?",
+  "What am I forgetting?",
+  "Help me plan this week",
+];
 
 interface AssistantPanelProps {
   open: boolean;
@@ -45,8 +53,16 @@ export function AssistantPanel({
   onOpenSettings,
 }: AssistantPanelProps) {
   // Kept here, outside the dialog, so closing it does not end the conversation.
-  const { messages, status, error, approval, send, connected } =
-    useAssistantConversation(engine);
+  const {
+    messages,
+    status,
+    error,
+    approval,
+    activity,
+    send,
+    reset,
+    connected,
+  } = useAssistantConversation(engine);
   const [draft, setDraft] = useState("");
   const end = useRef<HTMLDivElement>(null);
   const busy = status !== "idle";
@@ -75,9 +91,24 @@ export function AssistantPanel({
                 ? "Not connected yet."
                 : approval
                   ? "Waiting for your answer."
-                  : STATUS_TEXT[status]}
+                  : status === "thinking" && activity
+                    ? `${activity}…`
+                    : STATUS_TEXT[status]}
             </DialogDescription>
           </div>
+          {messages.length > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              // Clear of the close button in the corner.
+              className="mr-8 ml-auto text-muted-foreground"
+              disabled={busy}
+              onClick={reset}
+            >
+              <SquarePen data-icon="inline-start" />
+              New conversation
+            </Button>
+          )}
         </DialogHeader>
 
         <div
@@ -92,6 +123,22 @@ export function AssistantPanel({
                   ? "Ask what is on tomorrow, when your next exam is, or to add a task. It looks things up in your workspace, and asks before it changes anything."
                   : "The assistant is not connected. It uses OpenAI with your own API key, which you add in Settings."}
               </p>
+              {connected && (
+                <ul aria-label="Suggestions" className="mt-1 grid gap-1.5">
+                  {SUGGESTIONS.map((question) => (
+                    <li key={question}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full font-normal"
+                        onClick={() => void send(question)}
+                      >
+                        {question}
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              )}
               {!connected && (
                 <Button
                   variant="outline"
@@ -105,7 +152,7 @@ export function AssistantPanel({
               )}
             </div>
           )}
-          <ol className="grid gap-4">
+          <ol aria-label="Messages" className="grid gap-4">
             {messages.map((message) => (
               <li
                 key={message.id}

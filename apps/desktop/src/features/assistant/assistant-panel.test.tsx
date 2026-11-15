@@ -13,6 +13,7 @@ import { createFakeData, fakeAssistantAccess, renderApp } from "@/test/fakes";
 function engineUnderControl() {
   let onText: (piece: string) => void = () => {};
   let confirm: (summary: string) => Promise<boolean> = async () => false;
+  let onActivity: ((what: string) => void) | undefined;
   const answers: boolean[] = [];
   let settle: { resolve: () => void; reject: (error: Error) => void };
   const asked: AssistantMessage[][] = [];
@@ -22,6 +23,7 @@ function engineUnderControl() {
         asked.push(conversation);
         onText = handlers.onText;
         confirm = handlers.confirm;
+        onActivity = handlers.onActivity;
         settle = { resolve, reject };
       }),
   };
@@ -29,6 +31,7 @@ function engineUnderControl() {
     engine,
     asked,
     say: (piece: string) => act(() => onText(piece)),
+    doing: (what: string) => act(() => onActivity?.(what)),
     /** Has the engine ask to make a change; the answers land in `answers`. */
     askToChange: (summary: string) =>
       act(() => {
@@ -56,7 +59,7 @@ function ask(panel: ReturnType<typeof within>, text: string) {
 }
 
 const conversation = (panel: ReturnType<typeof within>) =>
-  within(panel.getByRole("log", { name: "Conversation" }))
+  within(panel.getByRole("list", { name: "Messages" }))
     .queryAllByRole("listitem")
     .map((message) => message.textContent);
 
@@ -285,4 +288,60 @@ test("Settings says what is sent to OpenAI", async () => {
   const settings = await openSettings();
 
   expect(settings.getByText(/are sent to OpenAI\./)).toBeDefined();
+});
+
+test("a suggested question is asked with one click", async () => {
+  const { engine, asked, say, finish } = engineUnderControl();
+  renderApp(createFakeData(), engine);
+  const panel = await openAssistant();
+
+  fireEvent.click(
+    await panel.findByRole("button", { name: "When is my next exam?" }),
+  );
+
+  expect(asked[0]?.map((message) => message.text)).toEqual([
+    "When is my next exam?",
+  ]);
+  expect(panel.queryByRole("list", { name: "Suggestions" })).toBeNull();
+  say("On Tuesday.");
+  await finish();
+});
+
+test("says what it is doing while it works", async () => {
+  const { engine, doing, say, finish } = engineUnderControl();
+  renderApp(createFakeData(), engine);
+  const panel = await openAssistant();
+  ask(panel, "What is due?");
+
+  doing("Looking at your tasks");
+
+  expect(panel.getByRole("status").textContent).toBe("Looking at your tasks…");
+  say("Nothing.");
+  await finish();
+  expect(panel.getByRole("status").textContent).toBe(
+    "Ask about your tasks, schedule and documents.",
+  );
+});
+
+test("a new conversation starts empty, but not in the middle of an answer", async () => {
+  const { engine, say, finish } = engineUnderControl();
+  renderApp(createFakeData(), engine);
+  const panel = await openAssistant();
+  expect(panel.queryByRole("button", { name: "New conversation" })).toBeNull();
+
+  ask(panel, "Hello");
+  expect(
+    (
+      panel.getByRole("button", {
+        name: "New conversation",
+      }) as HTMLButtonElement
+    ).disabled,
+  ).toBe(true);
+  say("Hello.");
+  await finish();
+
+  fireEvent.click(panel.getByRole("button", { name: "New conversation" }));
+
+  expect(conversation(panel)).toEqual([]);
+  expect(panel.getByRole("list", { name: "Suggestions" })).toBeDefined();
 });
