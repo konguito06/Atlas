@@ -8,7 +8,7 @@ ATLAS is a cross-platform productivity app for macOS (desktop), iPhone and iPad.
 
 Current focus: build each feature on desktop first. Mobile gets the feature afterwards, so keep logic in shared packages and do not touch `apps/mobile` unless asked.
 
-The app has four sections, always in this order: Home, Documents, Tasks & Exams, Schedule. What exists on desktop: Home (greeting, date, the assistant's sphere, quick capture, today's schedule with a day line, progress ring and figures, due-soon list, week strip, projects, recent documents), Documents (a library with title search, favourites and folders, and a rich-text editor that saves by itself), Tasks & Exams with three areas (tasks with priority, status, due date, subtasks and projects; exams with a date and countdown; deadlines, which is a combined view of dated tasks and coming exams), and Schedule with two areas (a calendar with day, week and month views that shows the weekly timetable, events, exams and task due dates together; and the timetable editor). Command-K opens search and commands: it finds documents (titles and contents), tasks, exams and events, goes to sections, and adds tasks. A Settings page holds appearance (light, dark, system) and sidebar mode. There is no account: the app opens straight in and saves everything in a SQLite database on the Mac. Mobile is still an empty shell. There is no sync. The assistant has its interface and its conversation logic, but no engine is connected, so it answers nothing.
+The app has four sections, always in this order: Home, Documents, Tasks & Exams, Schedule. What exists on desktop: Home (greeting, date, the assistant's sphere, quick capture, today's schedule with a day line, progress ring and figures, due-soon list, week strip, projects, recent documents), Documents (a library with title search, favourites and folders, and a rich-text editor that saves by itself), Tasks & Exams with three areas (tasks with priority, status, due date, subtasks and projects; exams with a date and countdown; deadlines, which is a combined view of dated tasks and coming exams), and Schedule with two areas (a calendar with day, week and month views that shows the weekly timetable, events, exams and task due dates together; and the timetable editor). Command-K opens search and commands: it finds documents (titles and contents), tasks, exams and events, goes to sections, and adds tasks. A Settings page holds appearance (light, dark, system) and sidebar mode. There is no account: the app opens straight in and saves everything in a SQLite database on the Mac. Mobile is still an empty shell. There is no sync. The assistant works once the user saves an OpenAI API key in Settings: it can look up tasks, exams, the schedule and documents, and add tasks and events after asking.
 
 Parked, not used by the app: the Supabase backend (`packages/db`, `supabase/`) and the sign-in logic. The server schema is behind the app (it still has deadlines, not tasks); do not extend it until sync is designed (see `docs/decisions/0002-data-on-the-device.md`).
 
@@ -109,10 +109,15 @@ If `cargo` is not found, prefix the command with `PATH="/opt/homebrew/opt/rustup
 
 ## Assistant
 
+Read `docs/decisions/0004-assistant-with-the-users-own-key.md` before changing any of this.
+
 - The assistant is reached through the sphere on Home (`features/assistant/atlas-sphere.tsx`, styled under `.atlas-sphere` in `index.css`). The sphere is the one place gradients and glow are allowed. Its `status` (idle, listening, thinking, responding) decides how it moves.
-- Answers come only from an `AssistantEngine` (`packages/core/src/assistant.ts`) passed to `<App assistant={...}>`. The app passes none today, so the panel says "Not connected yet" and its input is disabled. Never add canned or hardcoded answers; tests pass a fake engine.
-- `useAssistantConversation` in core holds the conversation. A real engine will live behind a server that keeps the AI key, and will act on data only through validated, permission-checked tools over `AtlasData`, never the database.
-- The microphone button is present and disabled until voice exists.
+- It answers with OpenAI, using the user's own API key. The key lives in the macOS keychain and is read only by native code (`src-tauri/src/assistant.rs`), which also makes the requests. Never pass the key to the web view, log it, or store it anywhere else.
+- Layers, all in `packages/core/src`: `assistant.ts` (interfaces), `assistant-tools.ts` (what it can do), `assistant-engine.ts` (the tool loop, provider-neutral through `ChatModel`), `openai.ts` (OpenAI's format). The desktop glue is `apps/desktop/src/lib/assistant-access.ts`.
+- A new ability is a new tool: a Zod input schema, a `run` over `AtlasData`, and, if it changes anything, a `summary` in plain words, which makes the engine ask the person first. Never let a tool that changes data run without a `summary`, and never give the model a way around `AtlasData`.
+- Never add canned or hardcoded answers. Tests script a fake model (`assistant-engine.test.ts`) or a fake engine (`assistant-panel.test.tsx`); nothing in the test suite calls OpenAI.
+- With no key saved the panel says "Not connected yet" and its input is disabled. The microphone button is present and disabled until voice exists.
+- After changing `src-tauri`, run `cargo check` there (see the note on `cargo` under Commands).
 
 ## Server database (parked)
 
@@ -131,7 +136,7 @@ If `cargo` is not found, prefix the command with `PATH="/opt/homebrew/opt/rustup
 - Documents use one unified JSON schema across both apps. Never store a whole document as unstructured HTML.
 - Organize code by feature (modular, feature-based architecture).
 - The database is designed for multi-user workspaces, with strict Row Level Security.
-- AI API credentials stay on the server. Never expose database administrative credentials to a client.
+- AI API credentials stay out of the interface code: on a server, or, for the user's own key on desktop, in the keychain behind native code (decision 0004). Never expose database administrative credentials to a client.
 - Design offline-first. Synchronization must use explicit conflict resolution.
 - Avoid unnecessary dependencies.
 - No fake buttons or non-functional features. Everything that ships is implemented and tested.
