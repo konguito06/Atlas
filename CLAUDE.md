@@ -8,7 +8,7 @@ ATLAS is a cross-platform productivity app for macOS (desktop), iPhone and iPad.
 
 Current focus: build each feature on desktop first. Mobile gets the feature afterwards, so keep logic in shared packages and do not touch `apps/mobile` unless asked.
 
-What exists on desktop: a Today overview (the first page: clock, day line, progress ring, figures, due-soon list, week strip, recent documents), tasks (priority, status, due date, subtasks, projects), weekly timetables, and documents with a rich-text editor that saves by itself. There is no account: the app opens straight in and saves everything in a SQLite database on the Mac. Mobile is still an empty shell. There is no sync or AI code.
+What exists on desktop: a Today overview (the first page: clock, day line, progress ring, figures, due-soon list, week strip, recent documents), tasks (priority, status, due date, subtasks, projects), weekly timetables, and documents with a rich-text editor that saves by itself. A Settings page holds appearance (light, dark, system) and sidebar mode. There is no account: the app opens straight in and saves everything in a SQLite database on the Mac. Mobile is still an empty shell. There is no sync or AI code.
 
 Parked, not used by the app: the Supabase backend (`packages/db`, `supabase/`) and the sign-in logic. The server schema is behind the app (it still has deadlines, not tasks); do not extend it until sync is designed (see `docs/decisions/0002-data-on-the-device.md`).
 
@@ -89,11 +89,16 @@ If `cargo` is not found, prefix the command with `PATH="/opt/homebrew/opt/rustup
 
 ## Look and feel
 
-- The target is a calm, Apple-inspired Mac app: minimal, few boxes and borders, careful type and spacing, smooth but restrained motion, full keyboard use, reduced-motion respected. Avoid heavy gradients and dashboard clutter.
-- Dark mode follows the Mac's appearance through `prefers-color-scheme`; there is no `.dark` class. Colours come from the tokens in `apps/desktop/src/index.css`, so use `bg-background`, `text-muted-foreground` and so on, and give any raw Tailwind colour a `dark:` partner.
-- `signal` (the warm orange) is reserved for "now". Do not use it for decoration or for errors (`destructive` is for those).
+- The target is a calm, Apple-inspired Mac app: minimal, few boxes and borders, careful type and spacing, smooth but restrained motion, full keyboard use, reduced-motion respected. Avoid heavy gradients and dashboard clutter. Set parts of a page apart with a heading, a hairline and space, not with cards.
+- Colours come in two layers in `apps/desktop/src/index.css`: the official palette (`--atlas-navy`, `--atlas-gold`, `--atlas-aqua`, `--atlas-teal`, `--atlas-sand`) and the roles built from it. Components use only roles (`bg-background`, `text-muted-foreground`, `text-link`), never a hex value or a palette colour. See `docs/decisions/0003-theme-and-device-preferences.md`.
+- The theme is `data-theme="light"` or `"dark"` on `<html>`, set from the Appearance setting (`src/lib/appearance.ts`); there is no `.dark` class and no media query. Tailwind's `dark:` variant follows it. Check any visual change in both themes.
+- Teal (`primary`) is for what can be pressed, aqua (`accent`) for what is selected, gold (`signal`) for "now" and small indicators only. Teal is too light for small text on sand: use `text-link`. Errors use `destructive`. Hover is `hover:bg-foreground/6`, so it never looks like a selection.
 - Titles use `font-heading` (the system serif); everything else is the system sans.
+- Tick boxes get the `atlas-check` class; the platform's own box ignores the theme.
+- The sidebar has an expanded and a compact mode. Every item keeps its `aria-label` in both, and compact items get a `Tooltip`. A new page is added to the lists in `features/workspace/sidebar.tsx`.
+- Preferences about the device (appearance, sidebar mode) go through `usePreference` in `src/lib/preferences.ts`, not the workspace database.
 - The window has no title bar. Elements with `data-tauri-drag-region` at the top of the sidebar and main area drag the window, so keep interactive content below the first 2rem.
+- The Assistant page only states that there is no assistant yet. Do not add an input or canned answers to it before the real thing exists.
 
 ## Server database (parked)
 
