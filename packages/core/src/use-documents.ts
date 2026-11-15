@@ -1,10 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { AtlasData, DocumentSummary } from "./data";
 import type { AtlasDocument } from "./document";
+import type { Folder } from "./library";
 
 const workspacesKey = ["workspaces"] as const;
 const documentsKey = (workspaceId: string) =>
   ["documents", workspaceId] as const;
+const foldersKey = (workspaceId: string) => ["folders", workspaceId] as const;
 const contentKey = (documentId: string) =>
   ["document-content", documentId] as const;
 
@@ -25,7 +27,12 @@ export function useDocuments(data: AtlasData, workspaceId: string) {
 export function useCreateDocument(data: AtlasData, workspaceId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => data.createDocument({ id, workspaceId }),
+    mutationFn: (input: string | { id: string; folderId: string | null }) =>
+      data.createDocument(
+        typeof input === "string"
+          ? { id: input, workspaceId }
+          : { ...input, workspaceId },
+      ),
     onSuccess: (created) => {
       queryClient.setQueryData<DocumentSummary[]>(
         documentsKey(workspaceId),
@@ -103,6 +110,89 @@ export function useSaveDocumentContent(data: AtlasData, workspaceId: string) {
         (documents = []) =>
           documents.map((document) =>
             document.id === saved.id ? saved : document,
+          ),
+      );
+    },
+  });
+}
+
+/** Marks a document as a favourite, or files it in a folder. */
+export function useOrganizeDocument(data: AtlasData, workspaceId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      ...change
+    }: {
+      id: string;
+      favorite?: boolean;
+      folderId?: string | null;
+    }) => data.organizeDocument(id, change),
+    onSuccess: (saved) => {
+      queryClient.setQueryData<DocumentSummary[]>(
+        documentsKey(workspaceId),
+        (documents = []) =>
+          documents.map((document) =>
+            document.id === saved.id ? saved : document,
+          ),
+      );
+    },
+  });
+}
+
+export function useFolders(data: AtlasData, workspaceId: string) {
+  return useQuery({
+    queryKey: foldersKey(workspaceId),
+    queryFn: () => data.listFolders(workspaceId),
+  });
+}
+
+export function useCreateFolder(data: AtlasData, workspaceId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { id: string; name: string }) =>
+      data.createFolder({ ...input, workspaceId }),
+    onSuccess: (created) => {
+      queryClient.setQueryData<Folder[]>(
+        foldersKey(workspaceId),
+        (folders = []) => [...folders, created],
+      );
+    },
+  });
+}
+
+export function useRenameFolder(data: AtlasData, workspaceId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, name }: { id: string; name: string }) =>
+      data.renameFolder(id, name),
+    onSuccess: (saved) => {
+      queryClient.setQueryData<Folder[]>(
+        foldersKey(workspaceId),
+        (folders = []) =>
+          folders.map((folder) => (folder.id === saved.id ? saved : folder)),
+      );
+    },
+  });
+}
+
+export function useDeleteFolder(data: AtlasData, workspaceId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => data.deleteFolder(id),
+    onSuccess: (_result, id) => {
+      queryClient.setQueryData<Folder[]>(
+        foldersKey(workspaceId),
+        (folders = []) => folders.filter((folder) => folder.id !== id),
+      );
+      // Its documents are kept, outside any folder.
+      queryClient.setQueryData<DocumentSummary[]>(
+        documentsKey(workspaceId),
+        (documents = []) =>
+          documents.map((document) =>
+            document.folderId === id
+              ? { ...document, folderId: null }
+              : document,
           ),
       );
     },

@@ -150,6 +150,21 @@ const MIGRATIONS: string[] = [
 
   CREATE INDEX events_date ON events (date);
   `,
+  // The document library: folders, favourites, and a type for each document
+  // so that other kinds of document can join rich text later.
+  `
+  CREATE TABLE folders (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL CHECK (length(trim(name)) BETWEEN 1 AND 100),
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
+  ALTER TABLE documents ADD COLUMN folder_id TEXT REFERENCES folders (id);
+  ALTER TABLE documents
+    ADD COLUMN favorite INTEGER NOT NULL DEFAULT 0 CHECK (favorite IN (0, 1));
+  ALTER TABLE documents ADD COLUMN type TEXT NOT NULL DEFAULT 'text';
+  `,
 ];
 
 /** Brings the on-device database up to the current schema. Safe to rerun. */

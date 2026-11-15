@@ -8,6 +8,7 @@ export * from "./dates";
 export * from "./document";
 export * from "./events";
 export * from "./exams";
+export * from "./library";
 export * from "./local/local-data";
 export * from "./local/migrations";
 export * from "./local/sql-database";

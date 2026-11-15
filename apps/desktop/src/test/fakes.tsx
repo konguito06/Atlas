@@ -5,6 +5,7 @@ import {
   createEmptyDocument,
   type DocumentSummary,
   type Exam,
+  type Folder,
   type Project,
   type Task,
   type Timetable,
@@ -14,17 +15,26 @@ import { QueryClient } from "@tanstack/react-query";
 import { render } from "@testing-library/react";
 import { App } from "../App";
 
-export function documentNamed(title: string, id = title): DocumentSummary {
+export function documentNamed(
+  title: string,
+  id = title,
+  extra: Partial<DocumentSummary> = {},
+): DocumentSummary {
   return {
     id,
     title,
+    type: "text",
+    favorite: false,
+    folderId: null,
     createdAt: "2026-11-13T10:00:00.000Z",
     updatedAt: "2026-11-13T10:00:00.000Z",
+    ...extra,
   };
 }
 
 interface FakeSeed {
   documents?: DocumentSummary[];
+  folders?: Folder[];
   /** Stored content by document id; anything missing is an empty document. */
   contents?: Record<string, unknown>;
   tasks?: Task[];
@@ -42,6 +52,7 @@ interface FakeSeed {
     | "saveContent"
     | "saveExam"
     | "saveEvent"
+    | "saveFolder"
   >;
 }
 
@@ -107,6 +118,7 @@ export function examNamed(
 /** Keeps everything in memory, behaving like the real data layer. */
 export function createFakeData(seed: FakeSeed = {}): AtlasData {
   let documents = [...(seed.documents ?? [])];
+  let folders = [...(seed.folders ?? [])];
   const contents: Record<string, unknown> = { ...seed.contents };
   let tasks = [...(seed.tasks ?? [])];
   let exams = [...(seed.exams ?? [])];
@@ -124,8 +136,8 @@ export function createFakeData(seed: FakeSeed = {}): AtlasData {
       }
       return documents;
     },
-    createDocument: async ({ id }) => {
-      const created = documentNamed("", id);
+    createDocument: async ({ id, folderId = null }) => {
+      const created = documentNamed("", id, { folderId });
       documents = [created, ...documents];
       return created;
     },
@@ -133,11 +145,45 @@ export function createFakeData(seed: FakeSeed = {}): AtlasData {
       if (failing.includes("rename")) {
         throw new Error("Could not rename the document.");
       }
-      const renamed = { ...documentNamed(title, id) };
+      const current = documents.find((document) => document.id === id);
+      if (!current) throw new Error("Could not rename the document.");
+      const renamed = { ...current, title };
       documents = documents.map((document) =>
         document.id === id ? renamed : document,
       );
       return renamed;
+    },
+    organizeDocument: async (id, change) => {
+      const current = documents.find((document) => document.id === id);
+      if (!current) throw new Error("Could not update the document.");
+      const saved = { ...current, ...change };
+      documents = documents.map((document) =>
+        document.id === id ? saved : document,
+      );
+      return saved;
+    },
+    listFolders: async () => folders,
+    createFolder: async ({ id, name }) => {
+      if (failing.includes("saveFolder")) {
+        throw new Error("Could not create the folder.");
+      }
+      const created = { id, name };
+      folders = [...folders, created];
+      return created;
+    },
+    renameFolder: async (id, name) => {
+      if (failing.includes("saveFolder")) {
+        throw new Error("Could not rename the folder.");
+      }
+      const saved = { id, name };
+      folders = folders.map((folder) => (folder.id === id ? saved : folder));
+      return saved;
+    },
+    deleteFolder: async (id) => {
+      folders = folders.filter((folder) => folder.id !== id);
+      documents = documents.map((document) =>
+        document.folderId === id ? { ...document, folderId: null } : document,
+      );
     },
     getDocumentContent: async (id) => contents[id] ?? createEmptyDocument(),
     saveDocumentContent: async (id, content) => {

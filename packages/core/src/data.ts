@@ -1,6 +1,7 @@
 import type { AtlasDocument } from "./document";
 import type { EventsData } from "./events";
 import type { ExamsData } from "./exams";
+import type { DocumentType, FoldersData } from "./library";
 import type { TasksData } from "./tasks";
 import type { TimetablesData } from "./timetables";
 
@@ -15,7 +16,13 @@ export interface Workspace {
 export interface DocumentSummary {
   id: string;
   title: string;
+  /** Which editor opens it. */
+  type: DocumentType;
+  favorite: boolean;
+  /** The folder it is filed in, if any. */
+  folderId: string | null;
   createdAt: string;
+  /** When its title or content last changed; organising it does not count. */
   updatedAt: string;
 }
 
@@ -27,6 +34,7 @@ export interface AtlasData
   extends TasksData,
     ExamsData,
     EventsData,
+    FoldersData,
     TimetablesData {
   listWorkspaces(): Promise<Workspace[]>;
   /** Newest first. */
@@ -35,7 +43,14 @@ export interface AtlasData
   createDocument(input: {
     id: string;
     workspaceId: string;
+    /** File it in a folder straight away. */
+    folderId?: string | null;
   }): Promise<DocumentSummary>;
+  /** Marks it as a favourite or files it; null takes it out of its folder. */
+  organizeDocument(
+    id: string,
+    change: { favorite?: boolean; folderId?: string | null },
+  ): Promise<DocumentSummary>;
   renameDocument(id: string, title: string): Promise<DocumentSummary>;
   /**
    * What is stored for the document, exactly as stored. Check it with

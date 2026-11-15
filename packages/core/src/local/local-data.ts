@@ -2,6 +2,7 @@ import type { AtlasData, DocumentSummary } from "../data";
 import { createEmptyDocument } from "../document";
 import type { CalendarEvent } from "../events";
 import type { Exam } from "../exams";
+import type { DocumentType, Folder } from "../library";
 import type {
   Project,
   ProjectColor,
@@ -23,6 +24,9 @@ export const LOCAL_WORKSPACE = { id: "local", name: "Personal" } as const;
 interface DocumentRow {
   id: string;
   title: string;
+  type: string;
+  favorite: number;
+  folder_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -89,7 +93,9 @@ interface EntryRow {
   color: string;
 }
 
-const DOCUMENT_COLUMNS = "id, title, created_at, updated_at";
+const DOCUMENT_COLUMNS =
+  "id, title, type, favorite, folder_id, created_at, updated_at";
+const FOLDER_COLUMNS = "id, name";
 const TASK_COLUMNS =
   "id, title, notes, status, priority, due_date, due_time, project_id, exam_id, parent_id, completed_at, created_at";
 const EVENT_COLUMNS =
@@ -104,6 +110,9 @@ function toDocument(row: DocumentRow): DocumentSummary {
   return {
     id: row.id,
     title: row.title,
+    type: row.type as DocumentType,
+    favorite: row.favorite === 1,
+    folderId: row.folder_id,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -225,13 +234,22 @@ export function createLocalAtlasData(db: SqlDatabase): AtlasData {
       return rows.map(toDocument);
     },
 
-    async createDocument({ id }) {
+    async createDocument({ id, folderId = null }) {
       const message = "Could not create the document.";
       const timestamp = now();
+      // The driver's connections do not all enforce foreign keys, so check
+      // that the folder exists here.
+      if (folderId) await one(message, "folders", "id", folderId);
       await write(
         message,
-        "INSERT INTO documents (id, content, created_at, updated_at) VALUES (?, ?, ?, ?)",
-        [id, JSON.stringify(createEmptyDocument()), timestamp, timestamp],
+        "INSERT INTO documents (id, content, folder_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+        [
+          id,
+          JSON.stringify(createEmptyDocument()),
+          folderId,
+          timestamp,
+          timestamp,
+        ],
       );
       return toDocument(
         await one<DocumentRow>(message, "documents", DOCUMENT_COLUMNS, id),
@@ -248,6 +266,71 @@ export function createLocalAtlasData(db: SqlDatabase): AtlasData {
       return toDocument(
         await one<DocumentRow>(message, "documents", DOCUMENT_COLUMNS, id),
       );
+    },
+
+    async organizeDocument(id, change) {
+      const message = "Could not update the document.";
+      // Filing a document is not editing it, so updated_at is left alone.
+      const assignments: string[] = [];
+      const params: SqlValue[] = [];
+      if (change.favorite !== undefined) {
+        assignments.push("favorite = ?");
+        params.push(change.favorite ? 1 : 0);
+      }
+      if (change.folderId !== undefined) {
+        if (change.folderId)
+          await one(message, "folders", "id", change.folderId);
+        assignments.push("folder_id = ?");
+        params.push(change.folderId);
+      }
+      if (assignments.length > 0) {
+        await write(
+          message,
+          `UPDATE documents SET ${assignments.join(", ")} WHERE id = ?`,
+          [...params, id],
+        );
+      }
+      return toDocument(
+        await one<DocumentRow>(message, "documents", DOCUMENT_COLUMNS, id),
+      );
+    },
+
+    async listFolders() {
+      return db.select<Folder>(
+        `SELECT ${FOLDER_COLUMNS} FROM folders ORDER BY rowid`,
+      );
+    },
+
+    async createFolder({ id, name }) {
+      const message = "Could not create the folder.";
+      const timestamp = now();
+      await write(
+        message,
+        "INSERT INTO folders (id, name, created_at, updated_at) VALUES (?, ?, ?, ?)",
+        [id, name, timestamp, timestamp],
+      );
+      return one<Folder>(message, "folders", FOLDER_COLUMNS, id);
+    },
+
+    async renameFolder(id, name) {
+      const message = "Could not rename the folder.";
+      await write(
+        message,
+        "UPDATE folders SET name = ?, updated_at = ? WHERE id = ?",
+        [name, now(), id],
+      );
+      return one<Folder>(message, "folders", FOLDER_COLUMNS, id);
+    },
+
+    async deleteFolder(id) {
+      const message = "Could not delete the folder.";
+      // Take its documents out first, so none points at a missing folder.
+      await write(
+        message,
+        "UPDATE documents SET folder_id = NULL WHERE folder_id = ?",
+        [id],
+      );
+      await write(message, "DELETE FROM folders WHERE id = ?", [id]);
     },
 
     async getDocumentContent(id) {

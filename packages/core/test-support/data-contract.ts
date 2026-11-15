@@ -111,6 +111,89 @@ export function describeAtlasData(
         ).rejects.toThrow("Could not save the document.");
       });
 
+      test("start as plain text documents, unfiled and not favourites", async () => {
+        const [document] = await data.listDocuments(workspaceId);
+
+        expect(document).toMatchObject({
+          type: "text",
+          favorite: false,
+          folderId: null,
+        });
+      });
+
+      test("can be marked as a favourite without counting as edited", async () => {
+        const before = (await data.listDocuments(workspaceId)).find(
+          (document) => document.id === firstId,
+        );
+
+        const saved = await data.organizeDocument(firstId, { favorite: true });
+
+        expect(saved).toMatchObject({
+          favorite: true,
+          updatedAt: before?.updatedAt,
+        });
+        expect(
+          (await data.organizeDocument(firstId, { favorite: false })).favorite,
+        ).toBe(false);
+      });
+
+      test("can be filed in a folder, created in one, and taken out again", async () => {
+        const folderId = randomUUID();
+        const folder = await data.createFolder({
+          id: folderId,
+          workspaceId,
+          name: "Travel",
+        });
+        expect(folder).toEqual({ id: folderId, name: "Travel" });
+        expect(await data.listFolders(workspaceId)).toEqual([folder]);
+
+        expect(
+          (await data.organizeDocument(firstId, { folderId })).folderId,
+        ).toBe(folderId);
+        const createdId = randomUUID();
+        expect(
+          (await data.createDocument({ id: createdId, workspaceId, folderId }))
+            .folderId,
+        ).toBe(folderId);
+        expect(
+          (await data.organizeDocument(firstId, { folderId: null })).folderId,
+        ).toBeNull();
+
+        expect(await data.renameFolder(folderId, "Trips")).toEqual({
+          id: folderId,
+          name: "Trips",
+        });
+
+        await data.deleteFolder(folderId);
+        expect(await data.listFolders(workspaceId)).toEqual([]);
+        // The document that was in the folder is kept, outside any folder.
+        expect(
+          (await data.listDocuments(workspaceId)).find(
+            (document) => document.id === createdId,
+          ),
+        ).toMatchObject({ folderId: null });
+        await data.deleteDocument(createdId);
+      });
+
+      test("refuse a folder that is not there, and a folder without a name", async () => {
+        await expect(
+          data.organizeDocument(firstId, { folderId: randomUUID() }),
+        ).rejects.toThrow("Could not update the document.");
+        await expect(
+          data.createDocument({
+            id: randomUUID(),
+            workspaceId,
+            folderId: randomUUID(),
+          }),
+        ).rejects.toThrow("Could not create the document.");
+        await expect(
+          data.createFolder({ id: randomUUID(), workspaceId, name: "  " }),
+        ).rejects.toThrow("Could not create the folder.");
+        await expect(data.renameFolder(randomUUID(), "Ghost")).rejects.toThrow(
+          "Could not rename the folder.",
+        );
+      });
+
       test("can be deleted", async () => {
         await data.deleteDocument(secondId);
         const documents = await data.listDocuments(workspaceId);
