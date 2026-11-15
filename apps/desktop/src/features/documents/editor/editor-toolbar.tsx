@@ -132,7 +132,7 @@ const GROUPS: Tool[][] = [
 ];
 
 const toolClass =
-  "flex size-7 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-35 aria-pressed:bg-accent aria-pressed:text-foreground";
+  "flex size-7 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-foreground/6 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-35 aria-pressed:bg-accent aria-pressed:text-foreground";
 
 /** The formatting controls above a document. */
 export function EditorToolbar({ editor }: { editor: Editor }) {

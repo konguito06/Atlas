@@ -1,6 +1,10 @@
 import type { TimetableColor } from "@atlas/core";
 
-/** How each palette colour looks on the grid and in the colour picker. */
+/**
+ * How each colour a user can pick looks on the grid and in the picker. The
+ * blocks are a thin wash of the colour over whatever is behind them, so one
+ * definition works on the light and the dark theme.
+ */
 export const ENTRY_COLORS: Record<
   TimetableColor,
   { name: string; block: string; swatch: string }
@@ -8,37 +12,37 @@ export const ENTRY_COLORS: Record<
   blue: {
     name: "Blue",
     block:
-      "border-blue-300 bg-blue-50 text-blue-950 hover:bg-blue-100 dark:border-blue-700 dark:bg-blue-950 dark:text-blue-100 dark:hover:bg-blue-900",
-    swatch: "bg-blue-500",
+      "border-sky-600/30 bg-sky-600/15 text-foreground hover:bg-sky-600/25 dark:border-sky-400/35 dark:bg-sky-400/20 dark:hover:bg-sky-400/30",
+    swatch: "bg-sky-600 dark:bg-sky-400",
   },
   green: {
     name: "Green",
     block:
-      "border-emerald-300 bg-emerald-50 text-emerald-950 hover:bg-emerald-100 dark:border-emerald-700 dark:bg-emerald-950 dark:text-emerald-100 dark:hover:bg-emerald-900",
-    swatch: "bg-emerald-500",
+      "border-emerald-600/30 bg-emerald-600/15 text-foreground hover:bg-emerald-600/25 dark:border-emerald-400/35 dark:bg-emerald-400/20 dark:hover:bg-emerald-400/30",
+    swatch: "bg-emerald-600 dark:bg-emerald-400",
   },
   amber: {
     name: "Amber",
     block:
-      "border-amber-300 bg-amber-50 text-amber-950 hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100 dark:hover:bg-amber-900",
-    swatch: "bg-amber-500",
+      "border-amber-600/30 bg-amber-600/15 text-foreground hover:bg-amber-600/25 dark:border-amber-400/35 dark:bg-amber-400/20 dark:hover:bg-amber-400/30",
+    swatch: "bg-amber-600 dark:bg-amber-400",
   },
   rose: {
     name: "Rose",
     block:
-      "border-rose-300 bg-rose-50 text-rose-950 hover:bg-rose-100 dark:border-rose-700 dark:bg-rose-950 dark:text-rose-100 dark:hover:bg-rose-900",
-    swatch: "bg-rose-500",
+      "border-rose-600/30 bg-rose-600/15 text-foreground hover:bg-rose-600/25 dark:border-rose-400/35 dark:bg-rose-400/20 dark:hover:bg-rose-400/30",
+    swatch: "bg-rose-600 dark:bg-rose-400",
   },
   violet: {
     name: "Violet",
     block:
-      "border-violet-300 bg-violet-50 text-violet-950 hover:bg-violet-100 dark:border-violet-700 dark:bg-violet-950 dark:text-violet-100 dark:hover:bg-violet-900",
-    swatch: "bg-violet-500",
+      "border-violet-600/30 bg-violet-600/15 text-foreground hover:bg-violet-600/25 dark:border-violet-400/35 dark:bg-violet-400/20 dark:hover:bg-violet-400/30",
+    swatch: "bg-violet-600 dark:bg-violet-400",
   },
   slate: {
     name: "Grey",
     block:
-      "border-slate-300 bg-slate-50 text-slate-950 hover:bg-slate-100 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700",
-    swatch: "bg-slate-500",
+      "border-slate-600/30 bg-slate-600/15 text-foreground hover:bg-slate-600/25 dark:border-slate-400/35 dark:bg-slate-400/20 dark:hover:bg-slate-400/30",
+    swatch: "bg-slate-600 dark:bg-slate-400",
   },
 };

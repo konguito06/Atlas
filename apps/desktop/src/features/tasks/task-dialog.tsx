@@ -243,7 +243,7 @@ export function TaskDialog({
                           status: subtask.status === "done" ? "todo" : "done",
                         })
                       }
-                      className="size-4 shrink-0 accent-primary"
+                      className="atlas-check"
                     />
                     <span
                       className={cn(

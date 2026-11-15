@@ -49,7 +49,7 @@ export function TaskRow({
         checked={done}
         aria-label={`Mark ${task.title} as ${done ? "not done" : "done"}`}
         onChange={onToggle}
-        className="size-4 shrink-0 accent-primary"
+        className="atlas-check"
       />
       {onOpen ? (
         <button

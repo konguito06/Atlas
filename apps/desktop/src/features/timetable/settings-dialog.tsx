@@ -108,7 +108,7 @@ export function SettingsDialog({
                     type="checkbox"
                     checked={days.includes(day)}
                     onChange={() => toggleDay(day)}
-                    className="size-4 accent-primary"
+                    className="atlas-check"
                   />
                   {weekdayName(day, "short")}
                 </label>

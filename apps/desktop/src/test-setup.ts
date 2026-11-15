@@ -12,3 +12,9 @@ const noRects = Object.assign([], {
 Range.prototype.getClientRects = () => noRects;
 Range.prototype.getBoundingClientRect = () => new DOMRect();
 document.elementFromPoint = () => null;
+
+// Settings kept on the device must not carry over from one test to the next.
+afterEach(() => {
+  localStorage.clear();
+  delete document.documentElement.dataset.theme;
+});

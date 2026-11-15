@@ -59,8 +59,9 @@ export function DocumentsView({
                   }
                   onClick={() => setSelectedId(document.id)}
                   className={cn(
-                    "w-full truncate rounded-md px-2 py-1.5 text-left text-sm outline-none transition-colors hover:bg-accent focus-visible:ring-3 focus-visible:ring-ring/50",
-                    document.id === selected?.id && "bg-accent font-medium",
+                    "w-full truncate rounded-md px-2 py-1.5 text-left text-sm outline-none transition-colors hover:bg-foreground/6 focus-visible:ring-3 focus-visible:ring-ring/50",
+                    document.id === selected?.id &&
+                      "bg-accent font-medium text-accent-foreground hover:bg-accent",
                     !document.title && "text-muted-foreground",
                   )}
                 >

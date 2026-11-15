@@ -4,6 +4,20 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ATLAS</title>
+    <!-- Picks the theme before the first paint, so a dark window never
+         flashes light. Mirrors src/lib/appearance.ts. -->
+    <script>
+      try {
+        const choice = localStorage.getItem("atlas.appearance");
+        const dark =
+          choice === "dark" ||
+          (choice !== "light" &&
+            matchMedia("(prefers-color-scheme: dark)").matches);
+        document.documentElement.dataset.theme = dark ? "dark" : "light";
+      } catch {
+        // Without storage the default light theme stays.
+      }
+    </script>
   </head>
 
   <body>

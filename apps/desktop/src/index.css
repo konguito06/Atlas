@@ -2,27 +2,25 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-/* Dark mode follows the Mac's appearance setting. */
-@custom-variant dark (@media (prefers-color-scheme: dark));
+/*
+ * The theme is chosen by data-theme on <html>, set from the Appearance
+ * setting (see src/lib/appearance.ts). "System" resolves to light or dark
+ * before it gets here, so CSS only ever sees these two values.
+ */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 @theme inline {
   /* System faces: San Francisco for the interface, New York for titles. */
   --font-heading: ui-serif, "New York", Georgia, serif;
   --font-sans: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
   --color-signal: var(--signal);
-  --color-sidebar-ring: var(--sidebar-ring);
+  --color-link: var(--link);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -48,91 +46,160 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+  --ease-atlas: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 /*
- * Palette: cool white paper, a blue-black ink, one deep sea blue for actions,
- * and a single warm signal colour reserved for "now".
+ * Layer 1, the palette: the five official ATLAS colours. A future palette
+ * picker replaces these (and the shades derived from them below).
  */
 :root {
-  color-scheme: light dark;
+  --atlas-navy: #083a4f;
+  --atlas-gold: #a58d66;
+  --atlas-aqua: #c0d5d6;
+  --atlas-teal: #407e8c;
+  --atlas-sand: #e5e1dd;
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.22 0.035 265);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.22 0.035 265);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.22 0.035 265);
-  --primary: oklch(0.39 0.12 262);
-  --primary-foreground: oklch(0.985 0.005 262);
-  --secondary: oklch(0.96 0.008 262);
-  --secondary-foreground: oklch(0.25 0.04 265);
-  --muted: oklch(0.965 0.006 262);
-  --muted-foreground: oklch(0.52 0.025 262);
-  --accent: oklch(0.955 0.012 262);
-  --accent-foreground: oklch(0.25 0.04 265);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.915 0.01 262);
-  --input: oklch(0.89 0.012 262);
-  --ring: oklch(0.7 0.09 262);
-  --signal: oklch(0.64 0.2 36);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.972 0.006 262);
-  --sidebar-foreground: oklch(0.22 0.035 265);
-  --sidebar-primary: oklch(0.39 0.12 262);
-  --sidebar-primary-foreground: oklch(0.985 0.005 262);
-  --sidebar-accent: oklch(0.925 0.02 262);
-  --sidebar-accent-foreground: oklch(0.22 0.035 265);
-  --sidebar-border: oklch(0.915 0.01 262);
-  --sidebar-ring: oklch(0.7 0.09 262);
 }
 
-/* Night: the same sea, seen in the dark. Deep navy, never plain black. */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: oklch(0.2 0.03 264);
-    --foreground: oklch(0.93 0.012 262);
-    --card: oklch(0.24 0.035 264);
-    --card-foreground: oklch(0.93 0.012 262);
-    --popover: oklch(0.24 0.035 264);
-    --popover-foreground: oklch(0.93 0.012 262);
-    --primary: oklch(0.74 0.115 262);
-    --primary-foreground: oklch(0.18 0.03 264);
-    --secondary: oklch(0.28 0.04 264);
-    --secondary-foreground: oklch(0.93 0.012 262);
-    --muted: oklch(0.26 0.035 264);
-    --muted-foreground: oklch(0.72 0.025 262);
-    --accent: oklch(0.28 0.04 264);
-    --accent-foreground: oklch(0.93 0.012 262);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.6 0.1 262);
-    --signal: oklch(0.74 0.17 42);
-    --sidebar: oklch(0.17 0.028 264);
-    --sidebar-foreground: oklch(0.93 0.012 262);
-    --sidebar-primary: oklch(0.74 0.115 262);
-    --sidebar-primary-foreground: oklch(0.18 0.03 264);
-    --sidebar-accent: oklch(0.27 0.045 264);
-    --sidebar-accent-foreground: oklch(0.93 0.012 262);
-    --sidebar-border: oklch(1 0 0 / 8%);
-    --sidebar-ring: oklch(0.6 0.1 262);
-  }
+/*
+ * Layer 2, the roles. Components use only these names (bg-background,
+ * text-muted-foreground, ...), never a palette colour directly.
+ *
+ * Day: sand paper, navy ink, teal for what can be pressed, aqua for what is
+ * selected, and gold kept for "now".
+ */
+:root,
+[data-theme="light"] {
+  color-scheme: light;
+  --background: var(--atlas-sand);
+  --foreground: var(--atlas-navy);
+  /* Raised surfaces (dialogs, fields) are a lighter sheet of the same paper. */
+  --card: #f4f1ee;
+  --card-foreground: var(--atlas-navy);
+  --popover: #f4f1ee;
+  --popover-foreground: var(--atlas-navy);
+  --primary: var(--atlas-teal);
+  --primary-foreground: #ffffff;
+  --check-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%23ffffff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.5 6.2l2.4 2.4 4.6-5'/%3E%3C/svg%3E");
+  /* Teal deepened until it is readable as small text on sand. */
+  --link: #2c6573;
+  --secondary: #d9d4cf;
+  --secondary-foreground: var(--atlas-navy);
+  --muted: #dad5d0;
+  --muted-foreground: #46626e;
+  --accent: var(--atlas-aqua);
+  --accent-foreground: var(--atlas-navy);
+  --destructive: #a8432f;
+  --border: rgb(8 58 79 / 12%);
+  --input: rgb(8 58 79 / 24%);
+  --ring: var(--atlas-teal);
+  --signal: var(--atlas-gold);
+  --sidebar: #dcd7d2;
+  --sidebar-foreground: var(--atlas-navy);
+  --sidebar-accent: var(--atlas-aqua);
+  --sidebar-accent-foreground: var(--atlas-navy);
+  --sidebar-border: rgb(8 58 79 / 10%);
+}
+
+/* Night: the same navy, deepened. Aqua becomes the ink; never plain black. */
+[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #072733;
+  --foreground: #dfe9e9;
+  --card: #0b3140;
+  --card-foreground: #dfe9e9;
+  --popover: #0b3140;
+  --popover-foreground: #dfe9e9;
+  --primary: #5a9dab;
+  --primary-foreground: #04202a;
+  --check-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%2304202a' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.5 6.2l2.4 2.4 4.6-5'/%3E%3C/svg%3E");
+  --link: #7fbac6;
+  --secondary: #103a4a;
+  --secondary-foreground: #dfe9e9;
+  --muted: #0e3544;
+  --muted-foreground: #8fadb3;
+  --accent: #14495c;
+  --accent-foreground: var(--atlas-aqua);
+  --destructive: #e58f7c;
+  --border: rgb(192 213 214 / 12%);
+  --input: rgb(192 213 214 / 22%);
+  --ring: #5a9dab;
+  --signal: #c2a97c;
+  --sidebar: #051e28;
+  --sidebar-foreground: #dfe9e9;
+  --sidebar-accent: #14495c;
+  --sidebar-accent-foreground: var(--atlas-aqua);
+  --sidebar-border: rgb(192 213 214 / 8%);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
-  body {
-    @apply bg-background text-foreground;
-  }
   html {
-    @apply font-sans;
+    @apply bg-background font-sans;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+  ::selection {
+    background: color-mix(in oklch, var(--accent) 80%, transparent);
+  }
+  /* A Mac app does not show the pointing hand on its controls. */
+  button,
+  select,
+  [role="radio"] {
+    cursor: default;
+  }
+}
+
+/*
+ * Tick boxes. The platform's own box ignores the theme, so it is drawn here;
+ * it is still a real checkbox to the keyboard and to screen readers.
+ */
+.atlas-check,
+.atlas-prose input[type="checkbox"] {
+  appearance: none;
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+  border: 1.5px solid var(--input);
+  border-radius: 0.3125rem;
+  background: var(--card) center / 0.75rem no-repeat;
+  transition:
+    background-color 150ms,
+    border-color 150ms;
+}
+.atlas-check:hover,
+.atlas-prose input[type="checkbox"]:hover {
+  border-color: var(--primary);
+}
+.atlas-check:checked,
+.atlas-prose input[type="checkbox"]:checked {
+  border-color: var(--primary);
+  background-color: var(--primary);
+  background-image: var(--check-mark);
+}
+.atlas-check:focus-visible,
+.atlas-prose input[type="checkbox"]:focus-visible {
+  outline: 3px solid color-mix(in oklch, var(--ring) 50%, transparent);
+  outline-offset: 1px;
+}
+
+/* A page settling into place when it is opened. */
+@keyframes atlas-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+.atlas-enter {
+  animation: atlas-enter 280ms var(--ease-atlas) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .atlas-enter {
+    animation: none;
   }
 }
 
@@ -206,18 +273,13 @@
   color: var(--muted-foreground);
   text-decoration: line-through;
 }
-.atlas-prose input[type="checkbox"] {
-  width: 1rem;
-  height: 1rem;
-  accent-color: var(--primary);
-}
 .atlas-prose blockquote {
   border-left: 3px solid var(--border);
   padding-left: 1em;
   color: var(--muted-foreground);
 }
 .atlas-prose code {
-  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-family: var(--font-mono);
   font-size: 0.9em;
   background: var(--muted);
   border-radius: 0.3rem;
@@ -240,7 +302,7 @@
   margin: 1.5em 0;
 }
 .atlas-prose a {
-  color: var(--primary);
+  color: var(--link);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
