@@ -154,8 +154,8 @@ export function weekdayName(
   );
 }
 
-export interface PlacedEntry {
-  entry: TimetableEntry;
+export interface PlacedEntry<Entry = TimetableEntry> {
+  entry: Entry;
   /** Which side-by-side slot the entry takes, from 0. */
   lane: number;
   /** How many slots its group of overlapping entries needs. */
@@ -166,12 +166,14 @@ export interface PlacedEntry {
  * Arranges one day's entries so that ones overlapping in time sit side by
  * side instead of on top of each other.
  */
-export function layoutDay(entries: TimetableEntry[]): PlacedEntry[] {
+export function layoutDay<
+  Entry extends { startMinute: number; endMinute: number },
+>(entries: Entry[]): PlacedEntry<Entry>[] {
   const sorted = [...entries].sort(
     (a, b) => a.startMinute - b.startMinute || a.endMinute - b.endMinute,
   );
-  const placed: PlacedEntry[] = [];
-  let group: PlacedEntry[] = [];
+  const placed: PlacedEntry<Entry>[] = [];
+  let group: PlacedEntry<Entry>[] = [];
   let laneEnds: number[] = [];
   let groupEnd = 0;
 

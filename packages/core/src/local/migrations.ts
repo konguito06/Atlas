@@ -121,6 +121,35 @@ const MIGRATIONS: string[] = [
 
   ALTER TABLE tasks ADD COLUMN exam_id TEXT REFERENCES exams (id);
   `,
+  // Events: things that happen on one date, unlike the weekly timetable.
+  `
+  CREATE TABLE events (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL CHECK (length(trim(title)) BETWEEN 1 AND 100),
+    date TEXT NOT NULL,
+    start_minute INTEGER,
+    end_minute INTEGER,
+    location TEXT NOT NULL DEFAULT '' CHECK (length(location) <= 100),
+    notes TEXT NOT NULL DEFAULT '' CHECK (length(notes) <= 5000),
+    color TEXT NOT NULL
+      CHECK (color IN ('slate', 'blue', 'green', 'amber', 'rose', 'violet')),
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    -- Both times or neither. Written this way because a CHECK that
+    -- evaluates to NULL passes, which a half-filled pair would otherwise do.
+    CHECK ((start_minute IS NULL) = (end_minute IS NULL)),
+    CHECK (
+      start_minute IS NULL
+      OR (
+        start_minute BETWEEN 0 AND 1439
+        AND end_minute BETWEEN 1 AND 1440
+        AND end_minute > start_minute
+      )
+    )
+  );
+
+  CREATE INDEX events_date ON events (date);
+  `,
 ];
 
 /** Brings the on-device database up to the current schema. Safe to rerun. */

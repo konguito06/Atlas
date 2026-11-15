@@ -371,6 +371,74 @@ export function describeAtlasData(
       });
     });
 
+    describe("events", () => {
+      const eventId = randomUUID();
+      const draft = {
+        title: "Dentist",
+        date: "2026-11-20",
+        startMinute: 600,
+        endMinute: 645,
+        location: "",
+        notes: "",
+        color: "rose" as const,
+      };
+
+      test("an event is created and listed", async () => {
+        const created = await data.createEvent({
+          id: eventId,
+          workspaceId,
+          ...draft,
+        });
+
+        expect(created).toMatchObject({ id: eventId, ...draft });
+        expect(await data.listEvents(workspaceId)).toEqual([created]);
+      });
+
+      test("an event can be edited into one that takes the whole day", async () => {
+        const saved = await data.updateEvent(eventId, {
+          ...draft,
+          title: "Trip",
+          startMinute: null,
+          endMinute: null,
+        });
+
+        expect(saved).toMatchObject({
+          title: "Trip",
+          startMinute: null,
+          endMinute: null,
+        });
+      });
+
+      test("refuses a blank title, half a time, and an end before the start", async () => {
+        const create = (change: Partial<typeof draft> | object) =>
+          data.createEvent({
+            id: randomUUID(),
+            workspaceId,
+            ...draft,
+            ...change,
+          });
+
+        await expect(create({ title: " " })).rejects.toThrow(
+          "Could not add the event.",
+        );
+        await expect(create({ endMinute: null })).rejects.toThrow(
+          "Could not add the event.",
+        );
+        await expect(create({ endMinute: 500 })).rejects.toThrow(
+          "Could not add the event.",
+        );
+        await expect(data.updateEvent(randomUUID(), draft)).rejects.toThrow(
+          "Could not save the event.",
+        );
+      });
+
+      test("an event can be deleted", async () => {
+        await data.deleteEvent(eventId);
+
+        expect(await data.listEvents(workspaceId)).toEqual([]);
+      });
+    });
+
     describe("timetables", () => {
       const timetableId = randomUUID();
       const entryId = randomUUID();

@@ -1,5 +1,6 @@
 import type { AtlasData, DocumentSummary } from "../data";
 import { createEmptyDocument } from "../document";
+import type { CalendarEvent } from "../events";
 import type { Exam } from "../exams";
 import type {
   Project,
@@ -41,6 +42,18 @@ interface TaskRow {
   created_at: string;
 }
 
+interface EventRow {
+  id: string;
+  title: string;
+  date: string;
+  start_minute: number | null;
+  end_minute: number | null;
+  location: string;
+  notes: string;
+  color: string;
+  created_at: string;
+}
+
 interface ExamRow {
   id: string;
   subject: string;
@@ -79,6 +92,8 @@ interface EntryRow {
 const DOCUMENT_COLUMNS = "id, title, created_at, updated_at";
 const TASK_COLUMNS =
   "id, title, notes, status, priority, due_date, due_time, project_id, exam_id, parent_id, completed_at, created_at";
+const EVENT_COLUMNS =
+  "id, title, date, start_minute, end_minute, location, notes, color, created_at";
 const EXAM_COLUMNS = "id, subject, date, time, location, notes, created_at";
 const PROJECT_COLUMNS = "id, name, color";
 const TIMETABLE_COLUMNS = "id, name, days, start_hour, end_hour";
@@ -108,6 +123,20 @@ function toTask(row: TaskRow): Task {
     examId: row.exam_id,
     parentId: row.parent_id,
     completedAt: row.completed_at,
+    createdAt: row.created_at,
+  };
+}
+
+function toEvent(row: EventRow): CalendarEvent {
+  return {
+    id: row.id,
+    title: row.title,
+    date: row.date,
+    startMinute: row.start_minute,
+    endMinute: row.end_minute,
+    location: row.location,
+    notes: row.notes,
+    color: row.color as TimetableColor,
     createdAt: row.created_at,
   };
 }
@@ -349,6 +378,63 @@ export function createLocalAtlasData(db: SqlDatabase): AtlasData {
       // Subtasks first: if the second step fails, nothing is left orphaned.
       await write(message, "DELETE FROM tasks WHERE parent_id = ?", [id]);
       await write(message, "DELETE FROM tasks WHERE id = ?", [id]);
+    },
+
+    async listEvents() {
+      const rows = await db.select<EventRow>(
+        `SELECT ${EVENT_COLUMNS} FROM events ORDER BY rowid`,
+      );
+      return rows.map(toEvent);
+    },
+
+    async createEvent({ id, workspaceId: _workspaceId, ...draft }) {
+      const message = "Could not add the event.";
+      const timestamp = now();
+      await write(
+        message,
+        "INSERT INTO events (id, title, date, start_minute, end_minute, location, notes, color, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        [
+          id,
+          draft.title,
+          draft.date,
+          draft.startMinute,
+          draft.endMinute,
+          draft.location,
+          draft.notes,
+          draft.color,
+          timestamp,
+          timestamp,
+        ],
+      );
+      return toEvent(await one<EventRow>(message, "events", EVENT_COLUMNS, id));
+    },
+
+    async updateEvent(id, draft) {
+      const message = "Could not save the event.";
+      await write(
+        message,
+        "UPDATE events SET title = ?, date = ?, start_minute = ?, end_minute = ?, location = ?, notes = ?, color = ?, updated_at = ? WHERE id = ?",
+        [
+          draft.title,
+          draft.date,
+          draft.startMinute,
+          draft.endMinute,
+          draft.location,
+          draft.notes,
+          draft.color,
+          now(),
+          id,
+        ],
+      );
+      return toEvent(await one<EventRow>(message, "events", EVENT_COLUMNS, id));
+    },
+
+    async deleteEvent(id) {
+      await write(
+        "Could not delete the event.",
+        "DELETE FROM events WHERE id = ?",
+        [id],
+      );
     },
 
     async listExams() {

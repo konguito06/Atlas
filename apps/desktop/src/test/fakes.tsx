@@ -1,6 +1,7 @@
 import {
   type AssistantEngine,
   type AtlasData,
+  type CalendarEvent,
   createEmptyDocument,
   type DocumentSummary,
   type Exam,
@@ -28,12 +29,19 @@ interface FakeSeed {
   contents?: Record<string, unknown>;
   tasks?: Task[];
   exams?: Exam[];
+  events?: CalendarEvent[];
   projects?: Project[];
   timetables?: Timetable[];
   entries?: TimetableEntry[];
   /** Operations that should reject, to exercise error states. */
   failing?: Array<
-    "list" | "rename" | "saveTask" | "saveEntry" | "saveContent" | "saveExam"
+    | "list"
+    | "rename"
+    | "saveTask"
+    | "saveEntry"
+    | "saveContent"
+    | "saveExam"
+    | "saveEvent"
   >;
 }
 
@@ -51,6 +59,28 @@ export function taskNamed(title: string, extra: Partial<Task> = {}): Task {
     examId: null,
     parentId: null,
     completedAt: null,
+    createdAt: "2026-11-01T10:00:00.000Z",
+    ...extra,
+  };
+}
+
+/** An event for tests: timed when given a start and an end, else all day. */
+export function eventNamed(
+  title: string,
+  date: string,
+  startMinute: number | null = null,
+  endMinute: number | null = null,
+  extra: Partial<CalendarEvent> = {},
+): CalendarEvent {
+  return {
+    id: title,
+    title,
+    date,
+    startMinute,
+    endMinute,
+    location: "",
+    notes: "",
+    color: "blue",
     createdAt: "2026-11-01T10:00:00.000Z",
     ...extra,
   };
@@ -80,6 +110,7 @@ export function createFakeData(seed: FakeSeed = {}): AtlasData {
   const contents: Record<string, unknown> = { ...seed.contents };
   let tasks = [...(seed.tasks ?? [])];
   let exams = [...(seed.exams ?? [])];
+  let events = [...(seed.events ?? [])];
   let projects = [...(seed.projects ?? [])];
   let timetables = [...(seed.timetables ?? [])];
   let entries = [...(seed.entries ?? [])];
@@ -154,6 +185,27 @@ export function createFakeData(seed: FakeSeed = {}): AtlasData {
     },
     deleteTask: async (id) => {
       tasks = tasks.filter((task) => task.id !== id && task.parentId !== id);
+    },
+    listEvents: async () => events,
+    createEvent: async ({ id, workspaceId: _workspaceId, ...draft }) => {
+      if (failing.includes("saveEvent")) {
+        throw new Error("Could not add the event.");
+      }
+      const created = { id, ...draft, createdAt: new Date().toISOString() };
+      events = [...events, created];
+      return created;
+    },
+    updateEvent: async (id, draft) => {
+      const current = events.find((event) => event.id === id);
+      if (!current || failing.includes("saveEvent")) {
+        throw new Error("Could not save the event.");
+      }
+      const saved = { ...current, ...draft };
+      events = events.map((event) => (event.id === id ? saved : event));
+      return saved;
+    },
+    deleteEvent: async (id) => {
+      events = events.filter((event) => event.id !== id);
     },
     listExams: async () => exams,
     createExam: async ({ id, workspaceId: _workspaceId, ...draft }) => {

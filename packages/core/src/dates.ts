@@ -16,7 +16,8 @@ export function toLocalDate(date: Date): string {
   return `${date.getFullYear()}-${month}-${day}`;
 }
 
-function parseLocalDate(value: string): Date {
+/** A YYYY-MM-DD date as midnight on that day, where the person is. */
+export function parseLocalDate(value: string): Date {
   const [year = 0, month = 1, day = 1] = value.split("-").map(Number);
   return new Date(year, month - 1, day);
 }
