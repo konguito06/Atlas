@@ -8,7 +8,7 @@ ATLAS is a cross-platform productivity app for macOS (desktop), iPhone and iPad.
 
 Current focus: build each feature on desktop first. Mobile gets the feature afterwards, so keep logic in shared packages and do not touch `apps/mobile` unless asked.
 
-What exists on desktop: a Today overview (the first page: clock, day line, progress ring, figures, due-soon list, week strip, recent documents), tasks (priority, status, due date, subtasks, projects), weekly timetables, and documents with a rich-text editor that saves by itself. A Settings page holds appearance (light, dark, system) and sidebar mode. There is no account: the app opens straight in and saves everything in a SQLite database on the Mac. Mobile is still an empty shell. There is no sync or AI code.
+The app has four sections, always in this order: Home, Documents, Tasks & Exams, Schedule. What exists on desktop: Home (greeting, date, the assistant's sphere, quick capture, today's schedule with a day line, progress ring and figures, due-soon list, week strip, projects, recent documents), documents with a rich-text editor that saves by itself, tasks (priority, status, due date, subtasks, projects), and weekly timetables under Schedule. Exams, dated events and deadlines as their own entities do not exist yet. A Settings page holds appearance (light, dark, system) and sidebar mode. There is no account: the app opens straight in and saves everything in a SQLite database on the Mac. Mobile is still an empty shell. There is no sync. The assistant has its interface and its conversation logic, but no engine is connected, so it answers nothing.
 
 Parked, not used by the app: the Supabase backend (`packages/db`, `supabase/`) and the sign-in logic. The server schema is behind the app (it still has deadlines, not tasks); do not extend it until sync is designed (see `docs/decisions/0002-data-on-the-device.md`).
 
@@ -95,10 +95,17 @@ If `cargo` is not found, prefix the command with `PATH="/opt/homebrew/opt/rustup
 - Teal (`primary`) is for what can be pressed, aqua (`accent`) for what is selected, gold (`signal`) for "now" and small indicators only. Teal is too light for small text on sand: use `text-link`. Errors use `destructive`. Hover is `hover:bg-foreground/6`, so it never looks like a selection.
 - Titles use `font-heading` (the system serif); everything else is the system sans.
 - Tick boxes get the `atlas-check` class; the platform's own box ignores the theme.
+- Feature folders keep their older names: Home is `features/today`, Schedule is `features/timetable`.
 - The sidebar has an expanded and a compact mode. Every item keeps its `aria-label` in both, and compact items get a `Tooltip`. A new page is added to the lists in `features/workspace/sidebar.tsx`.
 - Preferences about the device (appearance, sidebar mode) go through `usePreference` in `src/lib/preferences.ts`, not the workspace database.
 - The window has no title bar. Elements with `data-tauri-drag-region` at the top of the sidebar and main area drag the window, so keep interactive content below the first 2rem.
-- The Assistant page only states that there is no assistant yet. Do not add an input or canned answers to it before the real thing exists.
+
+## Assistant
+
+- The assistant is reached through the sphere on Home (`features/assistant/atlas-sphere.tsx`, styled under `.atlas-sphere` in `index.css`). The sphere is the one place gradients and glow are allowed. Its `status` (idle, listening, thinking, responding) decides how it moves.
+- Answers come only from an `AssistantEngine` (`packages/core/src/assistant.ts`) passed to `<App assistant={...}>`. The app passes none today, so the panel says "Not connected yet" and its input is disabled. Never add canned or hardcoded answers; tests pass a fake engine.
+- `useAssistantConversation` in core holds the conversation. A real engine will live behind a server that keeps the AI key, and will act on data only through validated, permission-checked tools over `AtlasData`, never the database.
+- The microphone button is present and disabled until voice exists.
 
 ## Server database (parked)
 
