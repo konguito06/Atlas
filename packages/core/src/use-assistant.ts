@@ -16,6 +16,8 @@ export function useAssistantConversation(engine: AssistantEngine | undefined) {
   const [messages, setMessages] = useState<AssistantMessage[]>([]);
   const [status, setStatus] = useState<AssistantStatus>("idle");
   const [error, setError] = useState<string>();
+  // What the assistant is doing right now, in words, while it works.
+  const [activity, setActivity] = useState<string>();
   // A change the assistant wants to make and is waiting to be allowed.
   const [approval, setApproval] = useState<{
     summary: string;
@@ -52,6 +54,7 @@ export function useAssistantConversation(engine: AssistantEngine | undefined) {
             setStatus("responding");
             show([...asked, { id: answerId, role: "assistant", text: answer }]);
           },
+          onActivity: setActivity,
           confirm: (summary) =>
             new Promise<boolean>((resolve) => {
               setApproval({
@@ -74,18 +77,29 @@ export function useAssistantConversation(engine: AssistantEngine | undefined) {
       } finally {
         busy.current = false;
         setApproval(undefined);
+        setActivity(undefined);
         setStatus("idle");
       }
     },
     [engine],
   );
 
+  /** Starts over with an empty conversation. Ignored while answering. */
+  const reset = useCallback(() => {
+    if (busy.current) return;
+    conversation.current = [];
+    setMessages([]);
+    setError(undefined);
+  }, []);
+
   return {
     messages,
     status,
     error,
     approval,
+    activity,
     send,
+    reset,
     connected: engine !== undefined,
   };
 }

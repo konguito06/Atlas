@@ -62,6 +62,7 @@ beforeEach(async () => {
 async function ask(turns: Turn[], { allow = true }: { allow?: boolean } = {}) {
   const script = scriptedModel(turns);
   const confirm = vi.fn(async (_summary: string) => allow);
+  const activity: string[] = [];
   let said = "";
   await createAssistantEngine({
     model: script.model,
@@ -73,8 +74,9 @@ async function ask(turns: Turn[], { allow = true }: { allow?: boolean } = {}) {
       said += piece;
     },
     confirm,
+    onActivity: (what) => activity.push(what),
   });
-  return { ...script, confirm, said };
+  return { ...script, confirm, said, activity };
 }
 
 test("passes on the model's answer when it needs no tools", async () => {
@@ -98,6 +100,9 @@ test("tells the model the date, and offers it every tool with a schema", async (
     "read_document",
     "create_task",
     "create_event",
+    "complete_task",
+    "update_task",
+    "create_exam",
   ]);
   expect(requests[0]?.tools[0]?.parameters).toMatchObject({
     type: "object",
@@ -295,6 +300,133 @@ describe("changes", () => {
     ]);
     expect(await data.listEvents(workspaceId)).toEqual([]);
   });
+});
+
+describe("changing a task", () => {
+  beforeEach(async () => {
+    await data.createTask({
+      id: "essay",
+      workspaceId,
+      title: "Essay",
+      notes: "",
+      priority: "none",
+      dueDate: "2026-11-13",
+      dueTime: "23:59",
+      projectId: null,
+      examId: null,
+      parentId: null,
+    });
+  });
+  const essay = async () =>
+    (await data.listTasks(workspaceId)).find((task) => task.id === "essay");
+
+  test("marks it done after asking, naming the task", async () => {
+    const { confirm, activity } = await ask([
+      { calls: [["complete_task", { id: "essay" }]] },
+      { text: "Done." },
+    ]);
+
+    expect(confirm).toHaveBeenCalledExactlyOnceWith("Mark “Essay” as done");
+    expect((await essay())?.status).toBe("done");
+    expect(activity).toEqual(["Updating a task"]);
+  });
+
+  test("moves it, saying exactly what will change", async () => {
+    const { confirm } = await ask([
+      {
+        calls: [
+          [
+            "update_task",
+            { id: "essay", dueDate: "2026-11-20", priority: "high" },
+          ],
+        ],
+      },
+      { text: "Moved." },
+    ]);
+
+    expect(confirm).toHaveBeenCalledExactlyOnceWith(
+      "Change “Essay”: make it due Fri 20 Nov, set its priority to high",
+    );
+    expect(await essay()).toMatchObject({
+      dueDate: "2026-11-20",
+      dueTime: "23:59",
+      priority: "high",
+    });
+  });
+
+  test("removing the date removes its time too", async () => {
+    await ask([
+      { calls: [["update_task", { id: "essay", dueDate: null }]] },
+      { text: "Cleared." },
+    ]);
+
+    expect(await essay()).toMatchObject({ dueDate: null, dueTime: null });
+  });
+
+  test("leaves it alone when refused", async () => {
+    await ask(
+      [
+        { calls: [["update_task", { id: "essay", title: "Report" }]] },
+        { text: "Left as it was." },
+      ],
+      { allow: false },
+    );
+
+    expect((await essay())?.title).toBe("Essay");
+  });
+
+  test("a task that is not there, or a change that says nothing, never reaches the person", async () => {
+    const { confirm, toolResults } = await ask([
+      {
+        calls: [
+          ["complete_task", { id: "ghost" }],
+          ["update_task", { id: "essay" }],
+        ],
+      },
+      { text: "Sorry." },
+    ]);
+
+    expect(confirm).not.toHaveBeenCalled();
+    expect(toolResults()[0]).toEqual({
+      error: "There is no task with that id.",
+    });
+    expect(toolResults()[1].error).toMatch(/Say what to change\./);
+  });
+});
+
+test("adds an exam after asking", async () => {
+  const { confirm } = await ask([
+    {
+      calls: [
+        [
+          "create_exam",
+          { subject: "Algorithms", date: "2026-12-10", time: "09:00" },
+        ],
+      ],
+    },
+    { text: "Added." },
+  ]);
+
+  expect(confirm).toHaveBeenCalledExactlyOnceWith(
+    "Add the exam “Algorithms” on Thu 10 Dec at 09:00",
+  );
+  expect(await data.listExams(workspaceId)).toMatchObject([
+    { subject: "Algorithms", date: "2026-12-10", time: "09:00" },
+  ]);
+});
+
+test("says what it is doing as it works", async () => {
+  const { activity } = await ask([
+    {
+      calls: [
+        ["list_tasks", {}],
+        ["list_exams", {}],
+      ],
+    },
+    { text: "Here you go." },
+  ]);
+
+  expect(activity).toEqual(["Looking at your tasks", "Checking your exams"]);
 });
 
 describe("input the model gets wrong", () => {

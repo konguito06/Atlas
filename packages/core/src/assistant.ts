@@ -34,6 +34,8 @@ export interface AssistantReplyHandlers {
    * anything must ask here first, every time.
    */
   confirm: (summary: string) => Promise<boolean>;
+  /** Told what the engine is doing while it works: "Looking at your tasks". */
+  onActivity?: (what: string) => void;
 }
 
 /** Whatever produces the assistant's answers. */
