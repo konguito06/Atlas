@@ -50,7 +50,7 @@ export function TimetableView({
   }
 
   return (
-    <section className="mx-auto w-full max-w-5xl px-12 pt-14 pb-16">
+    <section className="mx-auto w-full max-w-5xl px-12 pt-8 pb-16">
       {timetables.isError && (
         <p role="alert" className="text-sm text-destructive">
           {timetables.error.message}

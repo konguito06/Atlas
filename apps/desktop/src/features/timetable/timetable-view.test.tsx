@@ -33,6 +33,7 @@ async function openTimetable(
 ) {
   renderApp(createFakeData(seed));
   fireEvent.click(await screen.findByRole("button", { name: "Schedule" }));
+  fireEvent.click(await screen.findByRole("radio", { name: "Timetable" }));
 }
 
 function type(label: string, value: string) {

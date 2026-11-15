@@ -10,12 +10,15 @@ import {
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DocumentsView } from "@/features/documents/documents-view";
+import {
+  type ScheduleArea,
+  ScheduleView,
+} from "@/features/schedule/schedule-view";
 import { SettingsView } from "@/features/settings/settings-view";
 import {
   type TasksArea,
   TasksExamsView,
 } from "@/features/tasks/tasks-exams-view";
-import { TimetableView } from "@/features/timetable/timetable-view";
 import { TodayView } from "@/features/today/today-view";
 import { useAppearance } from "@/lib/appearance";
 import { usePreference } from "@/lib/preferences";
@@ -66,6 +69,7 @@ function WorkspaceLayout({
   const [documentToOpen, setDocumentToOpen] = useState<string>();
   // Which area of Tasks & Exams a link from another page leads to.
   const [tasksArea, setTasksArea] = useState<TasksArea>("tasks");
+  const [scheduleArea, setScheduleArea] = useState<ScheduleArea>("calendar");
   const [appearance, setAppearance] = useAppearance();
   const [sidebar, setSidebar] = usePreference(
     "atlas.sidebar",
@@ -98,6 +102,7 @@ function WorkspaceLayout({
         page={page}
         onNavigate={(target) => {
           setTasksArea("tasks");
+          setScheduleArea("calendar");
           setPage(target);
         }}
         mode={sidebar}
@@ -122,7 +127,12 @@ function WorkspaceLayout({
                 workspaceId={workspace.id}
                 onOpen={(target) => {
                   setTasksArea("tasks");
+                  setScheduleArea("calendar");
                   setPage(target);
+                }}
+                onOpenTimetable={() => {
+                  setScheduleArea("timetable");
+                  setPage("schedule");
                 }}
                 onOpenExams={() => {
                   setTasksArea("exams");
@@ -142,7 +152,11 @@ function WorkspaceLayout({
               />
             )}
             {page === "schedule" && (
-              <TimetableView data={data} workspaceId={workspace.id} />
+              <ScheduleView
+                data={data}
+                workspaceId={workspace.id}
+                initialArea={scheduleArea}
+              />
             )}
             {page === "documents" && (
               <DocumentsView

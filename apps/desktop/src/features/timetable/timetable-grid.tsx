@@ -93,7 +93,7 @@ export function TimetableGrid({
                     aria-label={`${entry.title}, ${weekdayName(day)} ${times}${entry.location ? `, ${entry.location}` : ""}`}
                     onClick={() => onOpenEntry(entry)}
                     className={cn(
-                      "absolute overflow-hidden rounded-md border px-1.5 py-1 text-left text-xs outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50",
+                      "absolute flex flex-col justify-start overflow-hidden rounded-md border px-1.5 py-1 text-left text-xs outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50",
                       ENTRY_COLORS[entry.color].block,
                     )}
                     style={{

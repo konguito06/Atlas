@@ -5,6 +5,7 @@ import {
   dayProgress,
   daySpan,
   describeCountdown,
+  describeDueDate,
   describeMinutes,
   describeNextUp,
   EMPTY_TASK_DRAFT,
@@ -19,10 +20,12 @@ import {
   tasksDueSoon,
   todaysEntries,
   toLocalDate,
+  upcomingEvents,
   useAllTimetableEntries,
   useCreateDocument,
   useCreateTask,
   useDocuments,
+  useEvents,
   useExams,
   useProjects,
   useTasks,
@@ -62,6 +65,8 @@ interface TodayViewProps {
   onOpenDocument: (documentId: string) => void;
   /** Jumps to the exams area of Tasks & Exams. */
   onOpenExams: () => void;
+  /** Jumps to the weekly timetable inside Schedule. */
+  onOpenTimetable: () => void;
 }
 
 /** Home: what is happening today and this week, with the assistant's sphere. */
@@ -72,6 +77,7 @@ export function TodayView({
   onOpen,
   onOpenDocument,
   onOpenExams,
+  onOpenTimetable,
 }: TodayViewProps) {
   const now = useNow(5_000);
   const today = toLocalDate(now);
@@ -82,6 +88,7 @@ export function TodayView({
   const update = useUpdateTask(data, workspaceId);
   const projects = useProjects(data, workspaceId);
   const exams = useExams(data, workspaceId);
+  const events = useEvents(data, workspaceId);
   const createTask = useCreateTask(data, workspaceId);
   const createDocument = useCreateDocument(data, workspaceId);
   const [assistantOpen, setAssistantOpen] = useState(false);
@@ -105,6 +112,7 @@ export function TodayView({
   const hasNoTimetable = timetables.isSuccess && timetables.data.length === 0;
   const severalTimetables = (timetables.data?.length ?? 0) > 1;
   const nextExams = splitExams(exams.data ?? [], today).upcoming.slice(0, 3);
+  const nextEvents = upcomingEvents(events.data ?? [], today).slice(0, 3);
   const recentDocuments = documents.data?.slice(0, 4) ?? [];
   const activeProjects = projectProgress(
     projects.data ?? [],
@@ -117,6 +125,7 @@ export function TodayView({
     documents.error ??
     projects.error ??
     exams.error ??
+    events.error ??
     update.error ??
     createTask.error ??
     createDocument.error;
@@ -261,7 +270,7 @@ export function TodayView({
                 <p className="text-sm text-muted-foreground">
                   You have no timetable yet.
                 </p>
-                <Button variant="outline" onClick={() => onOpen("schedule")}>
+                <Button variant="outline" onClick={onOpenTimetable}>
                   Set up a timetable
                 </Button>
               </div>
@@ -402,6 +411,35 @@ export function TodayView({
               </ul>
             )}
           </Block>
+
+          {nextEvents.length > 0 && (
+            <Block
+              title="Events"
+              action={
+                <BlockLink onClick={() => onOpen("schedule")}>
+                  Open schedule
+                </BlockLink>
+              }
+            >
+              <ul aria-label="Upcoming events" className="grid gap-2.5">
+                {nextEvents.map((event) => (
+                  <li
+                    key={event.id}
+                    className="flex items-baseline gap-3 text-sm"
+                  >
+                    <span className="min-w-0 flex-1 truncate font-medium">
+                      {event.title}
+                    </span>
+                    <span className="shrink-0 text-muted-foreground tabular-nums">
+                      {describeDueDate(event.date, today)}
+                      {event.startMinute !== null &&
+                        ` at ${minutesToTime(event.startMinute)}`}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </Block>
+          )}
 
           <Block title="This week">
             <WeekStrip days={week} />
