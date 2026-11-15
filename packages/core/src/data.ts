@@ -1,4 +1,5 @@
 import type { AtlasDocument } from "./document";
+import type { ExamsData } from "./exams";
 import type { TasksData } from "./tasks";
 import type { TimetablesData } from "./timetables";
 
@@ -21,7 +22,7 @@ export interface DocumentSummary {
  * Everything the apps read and write. Screens depend on this interface, so
  * tests can swap in an in-memory version.
  */
-export interface AtlasData extends TasksData, TimetablesData {
+export interface AtlasData extends TasksData, ExamsData, TimetablesData {
   listWorkspaces(): Promise<Workspace[]>;
   /** Newest first. */
   listDocuments(workspaceId: string): Promise<DocumentSummary[]>;

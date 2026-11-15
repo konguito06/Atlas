@@ -3,6 +3,7 @@ import {
   type AtlasData,
   createEmptyDocument,
   type DocumentSummary,
+  type Exam,
   type Project,
   type Task,
   type Timetable,
@@ -26,11 +27,14 @@ interface FakeSeed {
   /** Stored content by document id; anything missing is an empty document. */
   contents?: Record<string, unknown>;
   tasks?: Task[];
+  exams?: Exam[];
   projects?: Project[];
   timetables?: Timetable[];
   entries?: TimetableEntry[];
   /** Operations that should reject, to exercise error states. */
-  failing?: Array<"list" | "rename" | "saveTask" | "saveEntry" | "saveContent">;
+  failing?: Array<
+    "list" | "rename" | "saveTask" | "saveEntry" | "saveContent" | "saveExam"
+  >;
 }
 
 /** A task for tests: only what matters to the test needs passing. */
@@ -44,8 +48,27 @@ export function taskNamed(title: string, extra: Partial<Task> = {}): Task {
     dueDate: null,
     dueTime: null,
     projectId: null,
+    examId: null,
     parentId: null,
     completedAt: null,
+    createdAt: "2026-11-01T10:00:00.000Z",
+    ...extra,
+  };
+}
+
+/** An exam for tests: a subject and a date, anything else on request. */
+export function examNamed(
+  subject: string,
+  date: string,
+  extra: Partial<Exam> = {},
+): Exam {
+  return {
+    id: subject,
+    subject,
+    date,
+    time: null,
+    location: "",
+    notes: "",
     createdAt: "2026-11-01T10:00:00.000Z",
     ...extra,
   };
@@ -56,6 +79,7 @@ export function createFakeData(seed: FakeSeed = {}): AtlasData {
   let documents = [...(seed.documents ?? [])];
   const contents: Record<string, unknown> = { ...seed.contents };
   let tasks = [...(seed.tasks ?? [])];
+  let exams = [...(seed.exams ?? [])];
   let projects = [...(seed.projects ?? [])];
   let timetables = [...(seed.timetables ?? [])];
   let entries = [...(seed.entries ?? [])];
@@ -130,6 +154,30 @@ export function createFakeData(seed: FakeSeed = {}): AtlasData {
     },
     deleteTask: async (id) => {
       tasks = tasks.filter((task) => task.id !== id && task.parentId !== id);
+    },
+    listExams: async () => exams,
+    createExam: async ({ id, workspaceId: _workspaceId, ...draft }) => {
+      if (failing.includes("saveExam")) {
+        throw new Error("Could not add the exam.");
+      }
+      const created = { id, ...draft, createdAt: new Date().toISOString() };
+      exams = [...exams, created];
+      return created;
+    },
+    updateExam: async (id, draft) => {
+      const current = exams.find((exam) => exam.id === id);
+      if (!current || failing.includes("saveExam")) {
+        throw new Error("Could not save the exam.");
+      }
+      const saved = { ...current, ...draft };
+      exams = exams.map((exam) => (exam.id === id ? saved : exam));
+      return saved;
+    },
+    deleteExam: async (id) => {
+      exams = exams.filter((exam) => exam.id !== id);
+      tasks = tasks.map((task) =>
+        task.examId === id ? { ...task, examId: null } : task,
+      );
     },
     listProjects: async () => projects,
     createProject: async ({ id, name, color }) => {

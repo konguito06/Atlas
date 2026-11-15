@@ -1,5 +1,6 @@
 import type { AtlasData, DocumentSummary } from "../data";
 import { createEmptyDocument } from "../document";
+import type { Exam } from "../exams";
 import type {
   Project,
   ProjectColor,
@@ -34,8 +35,19 @@ interface TaskRow {
   due_date: string | null;
   due_time: string | null;
   project_id: string | null;
+  exam_id: string | null;
   parent_id: string | null;
   completed_at: string | null;
+  created_at: string;
+}
+
+interface ExamRow {
+  id: string;
+  subject: string;
+  date: string;
+  time: string | null;
+  location: string;
+  notes: string;
   created_at: string;
 }
 
@@ -66,7 +78,8 @@ interface EntryRow {
 
 const DOCUMENT_COLUMNS = "id, title, created_at, updated_at";
 const TASK_COLUMNS =
-  "id, title, notes, status, priority, due_date, due_time, project_id, parent_id, completed_at, created_at";
+  "id, title, notes, status, priority, due_date, due_time, project_id, exam_id, parent_id, completed_at, created_at";
+const EXAM_COLUMNS = "id, subject, date, time, location, notes, created_at";
 const PROJECT_COLUMNS = "id, name, color";
 const TIMETABLE_COLUMNS = "id, name, days, start_hour, end_hour";
 const ENTRY_COLUMNS =
@@ -92,8 +105,21 @@ function toTask(row: TaskRow): Task {
     dueDate: row.due_date,
     dueTime: row.due_time,
     projectId: row.project_id,
+    examId: row.exam_id,
     parentId: row.parent_id,
     completedAt: row.completed_at,
+    createdAt: row.created_at,
+  };
+}
+
+function toExam(row: ExamRow): Exam {
+  return {
+    id: row.id,
+    subject: row.subject,
+    date: row.date,
+    time: row.time,
+    location: row.location,
+    notes: row.notes,
     createdAt: row.created_at,
   };
 }
@@ -245,6 +271,9 @@ export function createLocalAtlasData(db: SqlDatabase): AtlasData {
       if (draft.projectId) {
         await one(message, "projects", "id", draft.projectId);
       }
+      if (draft.examId) {
+        await one(message, "exams", "id", draft.examId);
+      }
       if (draft.parentId) {
         const parent = await one<{ parent_id: string | null }>(
           message,
@@ -256,7 +285,7 @@ export function createLocalAtlasData(db: SqlDatabase): AtlasData {
       }
       await write(
         message,
-        "INSERT INTO tasks (id, title, notes, priority, due_date, due_time, project_id, parent_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO tasks (id, title, notes, priority, due_date, due_time, project_id, exam_id, parent_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [
           id,
           draft.title,
@@ -265,6 +294,7 @@ export function createLocalAtlasData(db: SqlDatabase): AtlasData {
           draft.dueDate,
           draft.dueTime,
           draft.projectId,
+          draft.examId,
           draft.parentId,
           timestamp,
           timestamp,
@@ -286,6 +316,7 @@ export function createLocalAtlasData(db: SqlDatabase): AtlasData {
         dueDate: "due_date",
         dueTime: "due_time",
         projectId: "project_id",
+        examId: "exam_id",
         status: "status",
       } as const;
       for (const [field, column] of Object.entries(columns)) {
@@ -302,6 +333,9 @@ export function createLocalAtlasData(db: SqlDatabase): AtlasData {
       if (change.projectId) {
         await one(message, "projects", "id", change.projectId);
       }
+      if (change.examId) {
+        await one(message, "exams", "id", change.examId);
+      }
       await write(
         message,
         `UPDATE tasks SET ${assignments.join(", ")} WHERE id = ?`,
@@ -315,6 +349,62 @@ export function createLocalAtlasData(db: SqlDatabase): AtlasData {
       // Subtasks first: if the second step fails, nothing is left orphaned.
       await write(message, "DELETE FROM tasks WHERE parent_id = ?", [id]);
       await write(message, "DELETE FROM tasks WHERE id = ?", [id]);
+    },
+
+    async listExams() {
+      const rows = await db.select<ExamRow>(
+        `SELECT ${EXAM_COLUMNS} FROM exams ORDER BY rowid`,
+      );
+      return rows.map(toExam);
+    },
+
+    async createExam({ id, workspaceId: _workspaceId, ...draft }) {
+      const message = "Could not add the exam.";
+      const timestamp = now();
+      await write(
+        message,
+        "INSERT INTO exams (id, subject, date, time, location, notes, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        [
+          id,
+          draft.subject,
+          draft.date,
+          draft.time,
+          draft.location,
+          draft.notes,
+          timestamp,
+          timestamp,
+        ],
+      );
+      return toExam(await one<ExamRow>(message, "exams", EXAM_COLUMNS, id));
+    },
+
+    async updateExam(id, draft) {
+      const message = "Could not save the exam.";
+      await write(
+        message,
+        "UPDATE exams SET subject = ?, date = ?, time = ?, location = ?, notes = ?, updated_at = ? WHERE id = ?",
+        [
+          draft.subject,
+          draft.date,
+          draft.time,
+          draft.location,
+          draft.notes,
+          now(),
+          id,
+        ],
+      );
+      return toExam(await one<ExamRow>(message, "exams", EXAM_COLUMNS, id));
+    },
+
+    async deleteExam(id) {
+      const message = "Could not delete the exam.";
+      // Unlink its tasks first, so none is left pointing at a missing exam.
+      await write(
+        message,
+        "UPDATE tasks SET exam_id = NULL WHERE exam_id = ?",
+        [id],
+      );
+      await write(message, "DELETE FROM exams WHERE id = ?", [id]);
     },
 
     async listProjects() {

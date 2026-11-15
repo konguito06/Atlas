@@ -31,24 +31,41 @@ export function addDays(date: string, days: number): string {
 
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
 
+/** Whole days from one YYYY-MM-DD date to another; negative if it is earlier. */
+export function daysBetween(from: string, to: string): number {
+  // Rounding absorbs the hour gained or lost on a daylight-saving change.
+  return Math.round(
+    (parseLocalDate(to).getTime() - parseLocalDate(from).getTime()) / DAY_IN_MS,
+  );
+}
+
 /** "Today", "Tomorrow", "Yesterday", or the date written out. */
 export function describeDueDate(
   dueDate: string,
   today: string,
   locale: string = DISPLAY_LOCALE,
 ): string {
-  const due = parseLocalDate(dueDate);
-  const reference = parseLocalDate(today);
-  // Rounding absorbs the hour gained or lost on a daylight-saving change.
-  const days = Math.round((due.getTime() - reference.getTime()) / DAY_IN_MS);
+  const days = daysBetween(today, dueDate);
   if (days === 0) return "Today";
   if (days === 1) return "Tomorrow";
   if (days === -1) return "Yesterday";
+  return formatLocalDate(dueDate, today, locale);
+}
 
+/** A date written out, "Thu 10 Dec"; the year is added when it is not this one. */
+export function formatLocalDate(
+  date: string,
+  today: string,
+  locale: string = DISPLAY_LOCALE,
+): string {
+  const day = parseLocalDate(date);
   return new Intl.DateTimeFormat(locale, {
     weekday: "short",
     day: "numeric",
     month: "short",
-    year: due.getFullYear() === reference.getFullYear() ? undefined : "numeric",
-  }).format(due);
+    year:
+      day.getFullYear() === parseLocalDate(today).getFullYear()
+        ? undefined
+        : "numeric",
+  }).format(day);
 }

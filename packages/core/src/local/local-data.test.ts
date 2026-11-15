@@ -75,6 +75,8 @@ test("upgrading from the first version turns each deadline into a task", async (
       dueDate: "2026-12-01",
       dueTime: "23:59",
       completedAt: null,
+      // Added by a later version; existing tasks start without an exam.
+      examId: null,
     }),
     expect.objectContaining({
       id: "finished",

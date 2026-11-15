@@ -130,6 +130,7 @@ export function describeAtlasData(
         dueDate: null,
         dueTime: null,
         projectId: null,
+        examId: null,
         parentId: null,
       };
 
@@ -265,6 +266,108 @@ export function describeAtlasData(
           (task) => task.title,
         );
         expect(titles).toEqual(["Someday"]);
+      });
+    });
+
+    describe("exams", () => {
+      const examId = randomUUID();
+      const taskId = randomUUID();
+      const draft = {
+        subject: "Algorithms",
+        date: "2026-12-10",
+        time: "09:00",
+        location: "Hall A",
+        notes: "",
+      };
+
+      test("an exam is created and listed", async () => {
+        const created = await data.createExam({
+          id: examId,
+          workspaceId,
+          ...draft,
+        });
+
+        expect(created).toMatchObject({ id: examId, ...draft });
+        expect(await data.listExams(workspaceId)).toEqual([created]);
+      });
+
+      test("an exam needs only a subject and a date", async () => {
+        const id = randomUUID();
+        const created = await data.createExam({
+          id,
+          workspaceId,
+          subject: "Statistics",
+          date: "2026-12-12",
+          time: null,
+          location: "",
+          notes: "",
+        });
+
+        expect(created).toMatchObject({ time: null, location: "" });
+        await data.deleteExam(id);
+      });
+
+      test("an exam can be edited", async () => {
+        const saved = await data.updateExam(examId, {
+          ...draft,
+          date: "2026-12-11",
+          time: null,
+        });
+
+        expect(saved).toMatchObject({ date: "2026-12-11", time: null });
+      });
+
+      test("refuses a blank subject, and saving an exam that is not there", async () => {
+        await expect(
+          data.createExam({
+            id: randomUUID(),
+            workspaceId,
+            ...draft,
+            subject: "  ",
+          }),
+        ).rejects.toThrow("Could not add the exam.");
+        await expect(data.updateExam(randomUUID(), draft)).rejects.toThrow(
+          "Could not save the exam.",
+        );
+      });
+
+      test("a task can be linked to an exam, and unlinked", async () => {
+        const created = await data.createTask({
+          id: taskId,
+          workspaceId,
+          title: "Revise graphs",
+          notes: "",
+          priority: "none",
+          dueDate: null,
+          dueTime: null,
+          projectId: null,
+          examId,
+          parentId: null,
+        });
+        expect(created.examId).toBe(examId);
+
+        expect((await data.updateTask(taskId, { examId: null })).examId).toBe(
+          null,
+        );
+        expect((await data.updateTask(taskId, { examId })).examId).toBe(examId);
+      });
+
+      test("refuses to link a task to an exam that is not there", async () => {
+        await expect(
+          data.updateTask(taskId, { examId: randomUUID() }),
+        ).rejects.toThrow("Could not save the task.");
+      });
+
+      test("deleting an exam keeps its tasks, without the link", async () => {
+        await data.deleteExam(examId);
+
+        const tasks = await data.listTasks(workspaceId);
+        expect(await data.listExams(workspaceId)).toEqual([]);
+        expect(tasks.find((task) => task.id === taskId)).toMatchObject({
+          title: "Revise graphs",
+          examId: null,
+        });
+        await data.deleteTask(taskId);
       });
     });
 

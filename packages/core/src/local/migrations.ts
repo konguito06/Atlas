@@ -106,6 +106,21 @@ const MIGRATIONS: string[] = [
 
   DROP TABLE deadlines;
   `,
+  // Exams, and the option of pointing a task at the exam it prepares for.
+  `
+  CREATE TABLE exams (
+    id TEXT PRIMARY KEY,
+    subject TEXT NOT NULL CHECK (length(trim(subject)) BETWEEN 1 AND 100),
+    date TEXT NOT NULL,
+    time TEXT,
+    location TEXT NOT NULL DEFAULT '' CHECK (length(location) <= 100),
+    notes TEXT NOT NULL DEFAULT '' CHECK (length(notes) <= 5000),
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
+  ALTER TABLE tasks ADD COLUMN exam_id TEXT REFERENCES exams (id);
+  `,
 ];
 
 /** Brings the on-device database up to the current schema. Safe to rerun. */

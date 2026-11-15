@@ -51,6 +51,8 @@ export interface TaskDraft {
   /** Clock time, HH:MM. Only allowed together with a date. */
   dueTime: string | null;
   projectId: string | null;
+  /** Optional: the exam this task helps prepare for. */
+  examId: string | null;
   /** Set on a subtask: the task it belongs to. Subtasks do not nest. */
   parentId: string | null;
 }
@@ -70,6 +72,7 @@ export const EMPTY_TASK_DRAFT: TaskDraft = {
   dueDate: null,
   dueTime: null,
   projectId: null,
+  examId: null,
   parentId: null,
 };
 
@@ -99,6 +102,7 @@ const taskSchema = z
       )
       .nullable(),
     projectId: z.string().nullable(),
+    examId: z.string().nullable(),
     parentId: z.string().nullable(),
   })
   .refine((task) => task.dueTime === null || task.dueDate !== null, {
