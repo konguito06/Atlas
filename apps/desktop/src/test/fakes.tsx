@@ -1,4 +1,5 @@
 import {
+  type AssistantEngine,
   type AtlasData,
   createEmptyDocument,
   type DocumentSummary,
@@ -192,9 +193,9 @@ export function createFakeData(seed: FakeSeed = {}): AtlasData {
 }
 
 /** Renders the whole app over the given data. */
-export function renderApp(data: AtlasData) {
+export function renderApp(data: AtlasData, assistant?: AssistantEngine) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
-  render(<App data={data} queryClient={queryClient} />);
+  render(<App data={data} assistant={assistant} queryClient={queryClient} />);
 }

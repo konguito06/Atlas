@@ -204,6 +204,159 @@
 }
 
 /*
+ * The assistant's sphere. This is the one place the app allows itself
+ * gradients and glow. data-status picks how it moves: idle, listening,
+ * thinking or responding.
+ */
+.atlas-sphere {
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+  border-radius: 50%;
+  isolation: isolate;
+  transition: scale 400ms var(--ease-atlas);
+  animation: atlas-sphere-breathe 7s ease-in-out infinite;
+}
+.atlas-sphere-halo {
+  position: absolute;
+  inset: -22%;
+  z-index: -1;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    color-mix(in oklch, var(--atlas-teal) 55%, transparent) 30%,
+    transparent 68%
+  );
+  opacity: 0.45;
+  filter: blur(6px);
+  transition: opacity 400ms;
+  animation: atlas-sphere-halo 7s ease-in-out infinite;
+}
+.atlas-sphere-body {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 32% 26%,
+    #eef6f6 0%,
+    var(--atlas-aqua) 12%,
+    var(--atlas-teal) 46%,
+    var(--atlas-navy) 92%
+  );
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 12%),
+    inset 0 -0.6em 1.2em rgb(4 32 42 / 55%);
+}
+/* Two bands of light drifting across the surface in opposite directions. */
+.atlas-sphere-current {
+  position: absolute;
+  inset: -20%;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0 18%,
+    rgb(192 213 214 / 65%) 30%,
+    transparent 44% 62%,
+    rgb(165 141 102 / 55%) 74%,
+    transparent 88%
+  );
+  filter: blur(8px);
+  mix-blend-mode: screen;
+  animation: atlas-sphere-turn 18s linear infinite;
+}
+.atlas-sphere-current-counter {
+  inset: -5%;
+  opacity: 0.6;
+  animation-duration: 27s;
+  animation-direction: reverse;
+}
+.atlas-sphere-glint {
+  position: absolute;
+  top: 12%;
+  left: 18%;
+  width: 34%;
+  height: 24%;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    rgb(255 255 255 / 55%),
+    transparent
+  );
+  transform: rotate(-28deg);
+}
+
+/* Listening: slow rings travel outwards, like sound being taken in. */
+.atlas-sphere[data-status="listening"] .atlas-sphere-halo {
+  opacity: 0.9;
+  animation: atlas-sphere-ring 1.8s ease-out infinite;
+}
+/* Thinking: the currents quicken and the gold comes forward. */
+.atlas-sphere[data-status="thinking"] .atlas-sphere-current {
+  animation-duration: 3.2s;
+  filter: blur(6px) saturate(1.5);
+}
+.atlas-sphere[data-status="thinking"] .atlas-sphere-halo {
+  opacity: 0.7;
+}
+/* Responding: a steady pulse, in time with speech. */
+.atlas-sphere[data-status="responding"] {
+  animation: atlas-sphere-speak 1.1s ease-in-out infinite;
+}
+.atlas-sphere[data-status="responding"] .atlas-sphere-halo {
+  opacity: 0.85;
+}
+
+/* Hovered: it leans towards the pointer's attention. */
+button:hover > .atlas-sphere,
+button:focus-visible > .atlas-sphere {
+  scale: 1.05;
+}
+button:hover > .atlas-sphere .atlas-sphere-halo,
+button:focus-visible > .atlas-sphere .atlas-sphere-halo {
+  opacity: 0.8;
+}
+
+@keyframes atlas-sphere-turn {
+  to {
+    rotate: 360deg;
+  }
+}
+@keyframes atlas-sphere-breathe {
+  50% {
+    transform: scale(1.025);
+  }
+}
+@keyframes atlas-sphere-halo {
+  50% {
+    transform: scale(1.08);
+  }
+}
+@keyframes atlas-sphere-ring {
+  from {
+    transform: scale(0.8);
+    opacity: 0.9;
+  }
+  to {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+}
+@keyframes atlas-sphere-speak {
+  50% {
+    transform: scale(1.07);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .atlas-sphere[data-status],
+  .atlas-sphere[data-status] .atlas-sphere-halo,
+  .atlas-sphere[data-status] .atlas-sphere-current {
+    animation: none;
+    transition: none;
+  }
+}
+
+/*
  * Document content. The editor renders plain elements, so their look is set
  * here instead of with utility classes.
  */
