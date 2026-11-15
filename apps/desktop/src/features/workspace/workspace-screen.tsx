@@ -1,4 +1,5 @@
 import {
+  type AssistantEngine,
   type AtlasData,
   groupTasks,
   toLocalDate,
@@ -18,7 +19,13 @@ import { usePreference } from "@/lib/preferences";
 import { useNow } from "@/lib/use-now";
 import { type Page, pageForShortcut, SIDEBAR_MODES, Sidebar } from "./sidebar";
 
-export function WorkspaceScreen({ data }: { data: AtlasData }) {
+export function WorkspaceScreen({
+  data,
+  assistant,
+}: {
+  data: AtlasData;
+  assistant?: AssistantEngine;
+}) {
   const workspaces = useWorkspaces(data);
 
   if (workspaces.isPending) {
@@ -37,14 +44,18 @@ export function WorkspaceScreen({ data }: { data: AtlasData }) {
       </div>
     );
   }
-  return <WorkspaceLayout data={data} workspace={workspace} />;
+  return (
+    <WorkspaceLayout data={data} assistant={assistant} workspace={workspace} />
+  );
 }
 
 function WorkspaceLayout({
   data,
+  assistant,
   workspace,
 }: {
   data: AtlasData;
+  assistant?: AssistantEngine;
   workspace: Workspace;
 }) {
   const [page, setPage] = useState<Page>("home");
@@ -99,6 +110,7 @@ function WorkspaceLayout({
             {page === "home" && (
               <TodayView
                 data={data}
+                assistant={assistant}
                 workspaceId={workspace.id}
                 onOpen={setPage}
                 onOpenDocument={(documentId) => {

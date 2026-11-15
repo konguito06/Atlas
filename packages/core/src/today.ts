@@ -1,5 +1,5 @@
 import { addDays, toLocalDate } from "./dates";
-import type { Task } from "./tasks";
+import type { Project, Task } from "./tasks";
 import {
   type Timetable,
   type TimetableEntry,
@@ -183,4 +183,38 @@ export function weekOverview(
       ).length,
     };
   });
+}
+
+export interface ProjectProgress {
+  project: Project;
+  /** Top-level tasks in the project, and how many of them are done. */
+  total: number;
+  done: number;
+}
+
+/**
+ * How far along each project is. Projects with work still open come first,
+ * the least finished at the top; finished and empty ones follow.
+ */
+export function projectProgress(
+  projects: Project[],
+  tasks: Task[],
+): ProjectProgress[] {
+  const open = (progress: ProjectProgress) => progress.total - progress.done;
+  return projects
+    .map((project) => {
+      const own = tasks.filter(
+        (task) => task.projectId === project.id && task.parentId === null,
+      );
+      return {
+        project,
+        total: own.length,
+        done: own.filter((task) => task.status === "done").length,
+      };
+    })
+    .sort(
+      (a, b) =>
+        Number(open(b) > 0) - Number(open(a) > 0) ||
+        a.done / (a.total || 1) - b.done / (b.total || 1),
+    );
 }

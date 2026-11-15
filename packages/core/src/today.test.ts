@@ -8,6 +8,7 @@ import {
   describeNextUp,
   greeting,
   isoWeekday,
+  projectProgress,
   todaysEntries,
   weekOverview,
 } from "./today";
@@ -241,5 +242,57 @@ describe("weekOverview", () => {
       dueCount: 2,
     });
     expect(week[5]).toMatchObject({ entryCount: 0, dueCount: 0 });
+  });
+});
+
+describe("projectProgress", () => {
+  const task = (
+    id: string,
+    projectId: string | null,
+    extra: Partial<Task> = {},
+  ) =>
+    ({
+      ...EMPTY_TASK_DRAFT,
+      id,
+      title: id,
+      projectId,
+      status: "todo",
+      completedAt: null,
+      createdAt: "2026-11-01T00:00:00.000Z",
+      ...extra,
+    }) satisfies Task;
+  const thesis = { id: "thesis", name: "Thesis", color: "violet" } as const;
+  const move = { id: "move", name: "Moving flat", color: "amber" } as const;
+  const done = { id: "done", name: "Finished", color: "green" } as const;
+  const empty = { id: "empty", name: "Empty", color: "slate" } as const;
+
+  const progress = projectProgress(
+    [done, empty, thesis, move],
+    [
+      task("a", "thesis", { status: "done" }),
+      task("b", "thesis"),
+      task("b1", "thesis", { parentId: "b" }),
+      task("c", "move"),
+      task("d", "move"),
+      task("e", "done", { status: "done" }),
+      task("f", null),
+    ],
+  );
+
+  test("counts top-level tasks only", () => {
+    expect(progress.find((entry) => entry.project.id === "thesis")).toEqual({
+      project: thesis,
+      total: 2,
+      done: 1,
+    });
+  });
+
+  test("puts projects with open work first, least finished at the top", () => {
+    expect(progress.map((entry) => entry.project.name)).toEqual([
+      "Moving flat",
+      "Thesis",
+      "Empty",
+      "Finished",
+    ]);
   });
 });

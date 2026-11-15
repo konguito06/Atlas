@@ -175,6 +175,10 @@ test("the sidebar counts tasks that are due today or overdue", async () => {
   ).toBeDefined();
 });
 
+async function findPanel(name: string) {
+  return within(await screen.findByRole("region", { name }));
+}
+
 function panel(name: string) {
   return within(screen.getByRole("region", { name }));
 }
@@ -286,4 +290,84 @@ test("with no documents, says so and links to the documents page", async () => {
   expect(
     await screen.findByRole("heading", { name: "No documents yet" }),
   ).toBeDefined();
+});
+
+test("a task captured from Home is added and confirmed", async () => {
+  renderApp(createFakeData());
+  const capture = await findPanel("Quick capture");
+
+  fireEvent.change(await capture.findByLabelText("New task"), {
+    target: { value: "Buy stamps" },
+  });
+  fireEvent.click(capture.getByRole("button", { name: "Add task" }));
+
+  expect(
+    await capture.findByText("Added “Buy stamps” to your tasks."),
+  ).toBeDefined();
+  expect((capture.getByLabelText("New task") as HTMLInputElement).value).toBe(
+    "",
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Tasks & Exams" }));
+  expect(await screen.findByText("Buy stamps")).toBeDefined();
+});
+
+test("quick capture refuses a task without a title", async () => {
+  renderApp(createFakeData());
+  const capture = await findPanel("Quick capture");
+
+  fireEvent.click(await capture.findByRole("button", { name: "Add task" }));
+
+  expect(capture.getByRole("alert").textContent).toBe("Give the task a title.");
+});
+
+test("a failed capture says so and keeps what was typed", async () => {
+  renderApp(createFakeData({ failing: ["saveTask"] }));
+  const capture = await findPanel("Quick capture");
+
+  fireEvent.change(await capture.findByLabelText("New task"), {
+    target: { value: "Buy stamps" },
+  });
+  fireEvent.click(capture.getByRole("button", { name: "Add task" }));
+
+  expect(await screen.findByText("Could not add the task.")).toBeDefined();
+  expect((capture.getByLabelText("New task") as HTMLInputElement).value).toBe(
+    "Buy stamps",
+  );
+});
+
+test("New document creates one and opens it", async () => {
+  renderApp(createFakeData());
+
+  fireEvent.click(
+    (await findPanel("Quick capture")).getByRole("button", {
+      name: "New document",
+    }),
+  );
+
+  expect(await screen.findByLabelText("Document title")).toBeDefined();
+});
+
+test("shows how far along each project is", async () => {
+  renderApp(
+    createFakeData({
+      projects: [
+        { id: "thesis", name: "Thesis", color: "violet" },
+        { id: "garden", name: "Garden", color: "green" },
+      ],
+      tasks: [
+        taskNamed("Outline", { projectId: "thesis", status: "done" }),
+        taskNamed("Chapter 1", { projectId: "thesis" }),
+      ],
+    }),
+  );
+
+  await waitFor(() =>
+    expect(rowsIn("Projects")).toEqual(["Thesis1 of 2 done", "GardenNo tasks"]),
+  );
+});
+
+test("with no projects, says so", async () => {
+  renderApp(createFakeData());
+
+  expect(await screen.findByText("No projects yet.")).toBeDefined();
 });

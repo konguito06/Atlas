@@ -1,26 +1,39 @@
 import {
+  type AssistantEngine,
   type AtlasData,
   DISPLAY_LOCALE,
   dayProgress,
   daySpan,
   describeMinutes,
   describeNextUp,
+  EMPTY_TASK_DRAFT,
   greeting,
   minutesOfDay,
   minutesToTime,
+  projectProgress,
+  TASK_TITLE_MAX_LENGTH,
   type Task,
   tasksDueSoon,
   todaysEntries,
   toLocalDate,
   useAllTimetableEntries,
+  useCreateDocument,
+  useCreateTask,
   useDocuments,
+  useProjects,
   useTasks,
   useTimetables,
   useUpdateTask,
+  validateTask,
   weekOverview,
 } from "@atlas/core";
+import { type FormEvent, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { AssistantPanel } from "@/features/assistant/assistant-panel";
+import { AtlasSphere } from "@/features/assistant/atlas-sphere";
 import { TaskRow } from "@/features/tasks/task-row";
+import { ENTRY_COLORS } from "@/features/timetable/entry-colors";
 import { useNow } from "@/lib/use-now";
 import { cn } from "@/lib/utils";
 import { DayLine } from "./day-line";
@@ -37,15 +50,18 @@ const dateFormat = new Intl.DateTimeFormat(DISPLAY_LOCALE, {
 
 interface TodayViewProps {
   data: AtlasData;
+  /** What answers in the assistant, once there is one. */
+  assistant?: AssistantEngine;
   workspaceId: string;
   /** Jumps to the page where the full list lives. */
   onOpen: (page: "tasks" | "schedule" | "documents") => void;
   onOpenDocument: (documentId: string) => void;
 }
 
-/** The station: everything about the day and the week on one screen. */
+/** Home: what is happening today and this week, with the assistant's sphere. */
 export function TodayView({
   data,
+  assistant,
   workspaceId,
   onOpen,
   onOpenDocument,
@@ -57,6 +73,14 @@ export function TodayView({
   const tasks = useTasks(data, workspaceId);
   const documents = useDocuments(data, workspaceId);
   const update = useUpdateTask(data, workspaceId);
+  const projects = useProjects(data, workspaceId);
+  const createTask = useCreateTask(data, workspaceId);
+  const createDocument = useCreateDocument(data, workspaceId);
+  const [assistantOpen, setAssistantOpen] = useState(false);
+  const [newTitle, setNewTitle] = useState("");
+  // What quick capture last did or refused, said back to the user.
+  const [captured, setCaptured] = useState<string>();
+  const [captureError, setCaptureError] = useState<string>();
 
   const entries = todaysEntries(timetables.data ?? [], allEntries.entries, now);
   const span = daySpan(entries);
@@ -73,12 +97,39 @@ export function TodayView({
   const hasNoTimetable = timetables.isSuccess && timetables.data.length === 0;
   const severalTimetables = (timetables.data?.length ?? 0) > 1;
   const recentDocuments = documents.data?.slice(0, 4) ?? [];
+  const activeProjects = projectProgress(
+    projects.data ?? [],
+    tasks.data ?? [],
+  ).slice(0, 4);
   const error =
     timetables.error ??
     allEntries.error ??
     tasks.error ??
     documents.error ??
-    update.error;
+    projects.error ??
+    update.error ??
+    createTask.error ??
+    createDocument.error;
+
+  function handleCapture(event: FormEvent) {
+    event.preventDefault();
+    const result = validateTask({ ...EMPTY_TASK_DRAFT, title: newTitle });
+    setCaptured(undefined);
+    if (!result.ok) {
+      setCaptureError(result.message);
+      return;
+    }
+    setCaptureError(undefined);
+    createTask.mutate(
+      { id: crypto.randomUUID(), ...result.value },
+      {
+        onSuccess: (created) => {
+          setNewTitle("");
+          setCaptured(`Added “${created.title}” to your tasks.`);
+        },
+      },
+    );
+  }
 
   function row(task: Task, overdue = false) {
     return (
@@ -99,8 +150,8 @@ export function TodayView({
 
   return (
     <section className="mx-auto w-full max-w-5xl px-12 pt-14 pb-16">
-      <header className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
-        <div>
+      <header className="flex items-start justify-between gap-8">
+        <div className="min-w-0">
           <p className="text-sm text-muted-foreground">{greeting(now)}</p>
           <h1 className="mt-1.5 font-heading text-[2.75rem] leading-[1.05] tracking-tight">
             {weekdayFormat.format(now)},{" "}
@@ -108,12 +159,74 @@ export function TodayView({
               {dateFormat.format(now)}
             </span>
           </h1>
+          <p className="mt-3 text-2xl font-light tracking-tight text-muted-foreground tabular-nums">
+            <span className="sr-only">The time is </span>
+            {minutesToTime(minutesOfDay(now))}
+          </p>
         </div>
-        <p className="text-6xl leading-none font-extralight tracking-tight tabular-nums">
-          <span className="sr-only">The time is </span>
-          {minutesToTime(minutesOfDay(now))}
-        </p>
+        <button
+          type="button"
+          aria-label="Open the ATLAS assistant"
+          aria-haspopup="dialog"
+          onClick={() => setAssistantOpen(true)}
+          className="mt-1 mr-3 shrink-0 rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-offset-8 focus-visible:ring-offset-background"
+        >
+          <AtlasSphere size={96} />
+        </button>
       </header>
+      <AssistantPanel
+        open={assistantOpen}
+        onOpenChange={setAssistantOpen}
+        engine={assistant}
+      />
+
+      <section aria-label="Quick capture" className="mt-10">
+        <div className="flex flex-wrap gap-2">
+          <form
+            onSubmit={handleCapture}
+            noValidate
+            className="flex min-w-64 flex-1 gap-2"
+          >
+            <Input
+              aria-label="New task"
+              value={newTitle}
+              maxLength={TASK_TITLE_MAX_LENGTH}
+              placeholder="Add a task"
+              onChange={(event) => setNewTitle(event.target.value)}
+            />
+            <Button
+              type="submit"
+              variant="outline"
+              disabled={createTask.isPending}
+            >
+              Add task
+            </Button>
+          </form>
+          <Button
+            variant="outline"
+            disabled={createDocument.isPending}
+            onClick={() =>
+              createDocument.mutate(crypto.randomUUID(), {
+                onSuccess: (created) => onOpenDocument(created.id),
+              })
+            }
+          >
+            New document
+          </Button>
+        </div>
+        {captureError ? (
+          <p role="alert" className="mt-2 text-sm text-destructive">
+            {captureError}
+          </p>
+        ) : (
+          <p
+            role="status"
+            className="mt-2 min-h-5 text-sm text-muted-foreground"
+          >
+            {captured}
+          </p>
+        )}
+      </section>
 
       {error && (
         <p role="alert" className="mt-6 text-sm text-destructive">
@@ -121,7 +234,7 @@ export function TodayView({
         </p>
       )}
 
-      <div className="mt-12 grid gap-x-14 gap-y-12 lg:grid-cols-12">
+      <div className="mt-8 grid gap-x-14 gap-y-12 lg:grid-cols-12">
         <div className="grid content-start gap-12 lg:col-span-7">
           <Block
             title="On today"
@@ -252,6 +365,50 @@ export function TodayView({
 
           <Block title="This week">
             <WeekStrip days={week} />
+          </Block>
+
+          <Block
+            title="Projects"
+            action={
+              <BlockLink onClick={() => onOpen("tasks")}>Open tasks</BlockLink>
+            }
+          >
+            {projects.isSuccess && activeProjects.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No projects yet.</p>
+            ) : (
+              <ul aria-label="Projects" className="grid gap-3.5">
+                {activeProjects.map(({ project, done, total }) => (
+                  <li key={project.id} className="text-sm">
+                    <div className="flex items-baseline gap-2">
+                      <span
+                        aria-hidden="true"
+                        className={cn(
+                          "size-2 shrink-0 rounded-full",
+                          ENTRY_COLORS[project.color].swatch,
+                        )}
+                      />
+                      <span className="min-w-0 flex-1 truncate font-medium">
+                        {project.name}
+                      </span>
+                      <span className="shrink-0 text-muted-foreground tabular-nums">
+                        {total === 0 ? "No tasks" : `${done} of ${total} done`}
+                      </span>
+                    </div>
+                    <div
+                      aria-hidden="true"
+                      className="mt-2 h-1 overflow-hidden rounded-full bg-foreground/8"
+                    >
+                      <div
+                        className="h-full rounded-full bg-primary transition-[width] duration-500 ease-atlas motion-reduce:transition-none"
+                        style={{
+                          width: `${total === 0 ? 0 : (done / total) * 100}%`,
+                        }}
+                      />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
           </Block>
 
           <Block
