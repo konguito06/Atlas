@@ -4,9 +4,11 @@ import {
   type CalendarEvent,
   createEmptyDocument,
   type DocumentSummary,
+  documentToPlainText,
   type Exam,
   type Folder,
   type Project,
+  parseDocument,
   type Task,
   type Timetable,
   type TimetableEntry,
@@ -194,6 +196,14 @@ export function createFakeData(seed: FakeSeed = {}): AtlasData {
       contents[id] = content;
       return current;
     },
+    listDocumentTexts: async () =>
+      documents.map(({ id }) => {
+        const parsed = parseDocument(contents[id] ?? createEmptyDocument());
+        return {
+          id,
+          text: parsed.ok ? documentToPlainText(parsed.document) : "",
+        };
+      }),
     deleteDocument: async (id) => {
       documents = documents.filter((document) => document.id !== id);
     },

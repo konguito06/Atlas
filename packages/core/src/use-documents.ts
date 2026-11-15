@@ -7,6 +7,8 @@ const workspacesKey = ["workspaces"] as const;
 const documentsKey = (workspaceId: string) =>
   ["documents", workspaceId] as const;
 const foldersKey = (workspaceId: string) => ["folders", workspaceId] as const;
+const textsKey = (workspaceId: string) =>
+  ["document-texts", workspaceId] as const;
 const contentKey = (documentId: string) =>
   ["document-content", documentId] as const;
 
@@ -196,5 +198,23 @@ export function useDeleteFolder(data: AtlasData, workspaceId: string) {
           ),
       );
     },
+  });
+}
+
+/**
+ * Every document's plain text, for search. Read afresh each time search is
+ * opened, so it always has what was last written.
+ */
+export function useDocumentTexts(
+  data: AtlasData,
+  workspaceId: string,
+  enabled: boolean,
+) {
+  return useQuery({
+    queryKey: textsKey(workspaceId),
+    queryFn: () => data.listDocumentTexts(workspaceId),
+    enabled,
+    staleTime: 0,
+    gcTime: 0,
   });
 }

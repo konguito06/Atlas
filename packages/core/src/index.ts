@@ -13,6 +13,7 @@ export * from "./local/local-data";
 export * from "./local/migrations";
 export * from "./local/sql-database";
 export * from "./schedule";
+export * from "./search";
 export * from "./supabase";
 export * from "./tasks";
 export * from "./timetables";

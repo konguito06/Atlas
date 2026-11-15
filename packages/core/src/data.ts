@@ -26,6 +26,12 @@ export interface DocumentSummary {
   updatedAt: string;
 }
 
+/** A document's plain text, as search reads it. */
+export interface DocumentText {
+  id: string;
+  text: string;
+}
+
 /**
  * Everything the apps read and write. Screens depend on this interface, so
  * tests can swap in an in-memory version.
@@ -62,4 +68,9 @@ export interface AtlasData
     content: AtlasDocument,
   ): Promise<DocumentSummary>;
   deleteDocument(id: string): Promise<void>;
+  /**
+   * Every document's words without formatting, for search. A document whose
+   * content cannot be read has no words.
+   */
+  listDocumentTexts(workspaceId: string): Promise<DocumentText[]>;
 }

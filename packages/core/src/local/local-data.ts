@@ -1,5 +1,9 @@
 import type { AtlasData, DocumentSummary } from "../data";
-import { createEmptyDocument } from "../document";
+import {
+  createEmptyDocument,
+  documentToPlainText,
+  parseDocument,
+} from "../document";
 import type { CalendarEvent } from "../events";
 import type { Exam } from "../exams";
 import type { DocumentType, Folder } from "../library";
@@ -366,6 +370,24 @@ export function createLocalAtlasData(db: SqlDatabase): AtlasData {
         "DELETE FROM documents WHERE id = ?",
         [id],
       );
+    },
+
+    async listDocumentTexts() {
+      const rows = await db.select<{ id: string; content: string }>(
+        "SELECT id, content FROM documents",
+      );
+      return rows.map((row) => {
+        let parsed: ReturnType<typeof parseDocument> | undefined;
+        try {
+          parsed = parseDocument(JSON.parse(row.content));
+        } catch {
+          // Unreadable content simply has no words to find.
+        }
+        return {
+          id: row.id,
+          text: parsed?.ok ? documentToPlainText(parsed.document) : "",
+        };
+      });
     },
 
     async listTasks() {

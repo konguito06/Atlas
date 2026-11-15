@@ -102,6 +102,15 @@ export function describeAtlasData(
         expect(await data.getDocumentContent(firstId)).toEqual(content);
       });
 
+      test("give their words, without formatting, for search", async () => {
+        const texts = await data.listDocumentTexts(workspaceId);
+
+        expect(texts.find((item) => item.id === firstId)?.text).toBe(
+          "Trip plan\nBook the ferry",
+        );
+        expect(texts.find((item) => item.id === secondId)?.text).toBe("");
+      });
+
       test("refuse to open or save a document that does not exist", async () => {
         await expect(data.getDocumentContent(randomUUID())).rejects.toThrow(
           "Could not open the document.",
