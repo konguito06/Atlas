@@ -1,18 +1,27 @@
 import type { AssistantEngine, AssistantMessage } from "@atlas/core";
-import { act, fireEvent, screen, within } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { expect, test } from "vitest";
-import { createFakeData, renderApp } from "@/test/fakes";
+import { createFakeData, fakeAssistantAccess, renderApp } from "@/test/fakes";
 
 /** An engine whose reply the test hands over piece by piece. */
 function engineUnderControl() {
   let onText: (piece: string) => void = () => {};
+  let confirm: (summary: string) => Promise<boolean> = async () => false;
+  const answers: boolean[] = [];
   let settle: { resolve: () => void; reject: (error: Error) => void };
   const asked: AssistantMessage[][] = [];
   const engine: AssistantEngine = {
-    reply: (conversation, handOver) =>
+    reply: (conversation, handlers) =>
       new Promise((resolve, reject) => {
         asked.push(conversation);
-        onText = handOver;
+        onText = handlers.onText;
+        confirm = handlers.confirm;
         settle = { resolve, reject };
       }),
   };
@@ -20,6 +29,12 @@ function engineUnderControl() {
     engine,
     asked,
     say: (piece: string) => act(() => onText(piece)),
+    /** Has the engine ask to make a change; the answers land in `answers`. */
+    askToChange: (summary: string) =>
+      act(() => {
+        void confirm(summary).then((allowed) => answers.push(allowed));
+      }),
+    answers,
     finish: () => act(async () => settle.resolve()),
     fail: (message: string) =>
       act(async () => settle.reject(new Error(message))),
@@ -45,14 +60,16 @@ const conversation = (panel: ReturnType<typeof within>) =>
     .queryAllByRole("listitem")
     .map((message) => message.textContent);
 
-test("with no assistant connected, the panel says so and takes no message", async () => {
+test("with no key saved, the panel says so, takes no message and leads to Settings", async () => {
   renderApp(createFakeData());
 
   const panel = await openAssistant();
 
   expect(panel.getByRole("status").textContent).toBe("Not connected yet.");
   expect(
-    panel.getByText(/ATLAS does not have an assistant yet\./),
+    panel.getByText(
+      "The assistant is not connected. It uses OpenAI with your own API key, which you add in Settings.",
+    ),
   ).toBeDefined();
   expect(
     (panel.getByLabelText("Message ATLAS") as HTMLInputElement).disabled,
@@ -67,6 +84,11 @@ test("with no assistant connected, the panel says so and takes no message", asyn
       }) as HTMLButtonElement
     ).disabled,
   ).toBe(true);
+
+  fireEvent.click(panel.getByRole("button", { name: "Open Settings" }));
+  expect(
+    await screen.findByRole("heading", { name: "Settings" }),
+  ).toBeDefined();
 });
 
 test("the panel closes", async () => {
@@ -166,4 +188,101 @@ test("the conversation is still there after closing and reopening", async () => 
     "You: Hello",
     "ATLAS: Hello.",
   ]);
+});
+
+test("a change waits for the person, and Allow lets it through", async () => {
+  const { engine, askToChange, answers, say, finish } = engineUnderControl();
+  renderApp(createFakeData(), engine);
+  const panel = await openAssistant();
+  ask(panel, "Add a task to buy stamps");
+
+  askToChange("Add the task “Buy stamps”");
+
+  const approval = within(panel.getByRole("group", { name: "Approval" }));
+  expect(approval.getByText("Add the task “Buy stamps”")).toBeDefined();
+  expect(answers).toEqual([]);
+
+  fireEvent.click(approval.getByRole("button", { name: "Allow" }));
+  await waitFor(() => expect(answers).toEqual([true]));
+  expect(panel.queryByRole("group", { name: "Approval" })).toBeNull();
+  say("Added.");
+  await finish();
+});
+
+test("a change that is not allowed is refused", async () => {
+  const { engine, askToChange, answers, finish } = engineUnderControl();
+  renderApp(createFakeData(), engine);
+  const panel = await openAssistant();
+  ask(panel, "Add a task");
+
+  askToChange("Add the task “Buy stamps”");
+  fireEvent.click(panel.getByRole("button", { name: "Don't allow" }));
+
+  await waitFor(() => expect(answers).toEqual([false]));
+  await finish();
+});
+
+async function openSettings() {
+  fireEvent.click(await screen.findByRole("button", { name: "Settings" }));
+  return within(await screen.findByRole("region", { name: "Assistant" }));
+}
+
+test("saving a key in Settings connects the assistant", async () => {
+  const access = fakeAssistantAccess();
+  renderApp(createFakeData(), access);
+  const settings = await openSettings();
+
+  fireEvent.change(settings.getByLabelText("OpenAI API key"), {
+    target: { value: "sk-test" },
+  });
+  fireEvent.click(settings.getByRole("button", { name: "Save key" }));
+
+  expect(await settings.findByText("A key is saved")).toBeDefined();
+  expect(access.savedKey).toBe("sk-test");
+  // The key is not left on screen or anywhere in the page.
+  expect(document.body.innerHTML).not.toContain("sk-test");
+
+  fireEvent.click(screen.getByRole("button", { name: "Home" }));
+  const panel = await openAssistant();
+  ask(panel, "Hello");
+  await waitFor(() =>
+    expect(conversation(panel)).toEqual(["You: Hello", "ATLAS: Hello."]),
+  );
+});
+
+test("a key that cannot be saved says so", async () => {
+  renderApp(
+    createFakeData(),
+    fakeAssistantAccess(undefined, { failing: true }),
+  );
+  const settings = await openSettings();
+
+  fireEvent.change(settings.getByLabelText("OpenAI API key"), {
+    target: { value: "sk-test" },
+  });
+  fireEvent.click(settings.getByRole("button", { name: "Save key" }));
+
+  expect((await settings.findByRole("alert")).textContent).toBe(
+    "The key could not be saved to the keychain.",
+  );
+});
+
+test("removing the key disconnects the assistant", async () => {
+  const { engine } = engineUnderControl();
+  const access = fakeAssistantAccess(engine);
+  renderApp(createFakeData(), access);
+  const settings = await openSettings();
+
+  fireEvent.click(await settings.findByRole("button", { name: "Remove key" }));
+
+  expect(await settings.findByLabelText("OpenAI API key")).toBeDefined();
+  expect(access.savedKey).toBeUndefined();
+});
+
+test("Settings says what is sent to OpenAI", async () => {
+  renderApp(createFakeData());
+
+  const settings = await openSettings();
+
+  expect(settings.getByText(/are sent to OpenAI\./)).toBeDefined();
 });

@@ -1,4 +1,5 @@
 import {
+  type AssistantAccess,
   type AssistantEngine,
   type AtlasData,
   type CalendarEvent,
@@ -348,10 +349,52 @@ export function createFakeData(seed: FakeSeed = {}): AtlasData {
   };
 }
 
-/** Renders the whole app over the given data. */
-export function renderApp(data: AtlasData, assistant?: AssistantEngine) {
+/**
+ * A stand-in for the assistant's connection. It starts with a key saved
+ * when given an engine, and without one otherwise.
+ */
+export function fakeAssistantAccess(
+  engine?: AssistantEngine,
+  { failing = false }: { failing?: boolean } = {},
+): AssistantAccess & { savedKey?: string } {
+  const access: AssistantAccess & { savedKey?: string } = {
+    savedKey: engine ? "a saved key" : undefined,
+    hasKey: async () => access.savedKey !== undefined,
+    saveKey: async (key) => {
+      if (failing)
+        throw new Error("The key could not be saved to the keychain.");
+      access.savedKey = key;
+    },
+    removeKey: async () => {
+      access.savedKey = undefined;
+    },
+    createEngine: () =>
+      engine ?? {
+        reply: async (_conversation, { onText }) => onText("Hello."),
+      },
+  };
+  return access;
+}
+
+/**
+ * Renders the whole app over the given data. Pass an engine for an app
+ * whose assistant is connected, an access to control the connection, or
+ * nothing for one whose assistant has no key yet.
+ */
+export function renderApp(
+  data: AtlasData,
+  assistant: AssistantEngine | AssistantAccess = fakeAssistantAccess(),
+) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
-  render(<App data={data} assistant={assistant} queryClient={queryClient} />);
+  render(
+    <App
+      data={data}
+      assistant={
+        "reply" in assistant ? fakeAssistantAccess(assistant) : assistant
+      }
+      queryClient={queryClient}
+    />,
+  );
 }

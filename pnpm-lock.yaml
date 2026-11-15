@@ -208,6 +208,9 @@ importers:
       '@tanstack/react-query':
         specifier: ^5.107.1
         version: 5.107.1(@types/react@19.3.0)(react@19.3.0)
+      '@tauri-apps/api':
+        specifier: ~2.12.4
+        version: 2.12.4
       '@tauri-apps/plugin-sql':
         specifier: ~2.6.0
         version: 2.6.0

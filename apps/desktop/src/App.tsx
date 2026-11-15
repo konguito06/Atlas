@@ -1,12 +1,12 @@
-import type { AssistantEngine, AtlasData } from "@atlas/core";
+import type { AssistantAccess, AtlasData } from "@atlas/core";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import { WorkspaceScreen } from "@/features/workspace/workspace-screen";
 
 interface AppProps {
   data: AtlasData;
-  /** What answers in the assistant. There is none yet, so the app passes nothing. */
-  assistant?: AssistantEngine;
+  /** How the assistant is reached. Leave out for an app without one. */
+  assistant?: AssistantAccess;
   /** Tests pass their own, with retries off. */
   queryClient?: QueryClient;
 }

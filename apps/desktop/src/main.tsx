@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
+import { openAiAccess } from "./lib/assistant-access";
 import { openAtlasData } from "./lib/database";
 import "./index.css";
 
@@ -14,7 +15,7 @@ openAtlasData().then(
   (data) => {
     root.render(
       <StrictMode>
-        <App data={data} />
+        <App data={data} assistant={openAiAccess} />
       </StrictMode>,
     );
   },

@@ -1,8 +1,9 @@
 import {
-  type AssistantEngine,
+  type AssistantAccess,
   type AtlasData,
   groupTasks,
   toLocalDate,
+  useAssistantAccess,
   useTasks,
   useWorkspaces,
   type Workspace,
@@ -26,7 +27,7 @@ export function WorkspaceScreen({
   assistant,
 }: {
   data: AtlasData;
-  assistant?: AssistantEngine;
+  assistant?: AssistantAccess;
 }) {
   const workspaces = useWorkspaces(data);
 
@@ -57,7 +58,7 @@ function WorkspaceLayout({
   workspace,
 }: {
   data: AtlasData;
-  assistant?: AssistantEngine;
+  assistant?: AssistantAccess;
   workspace: Workspace;
 }) {
   // Where the app is, and how many moves it took to get there. The count
@@ -79,6 +80,7 @@ function WorkspaceLayout({
     SIDEBAR_MODES,
     "expanded",
   );
+  const connection = useAssistantAccess(assistant, data, workspace.id);
   const tasks = useTasks(data, workspace.id);
   const today = toLocalDate(useNow());
   const due = groupTasks(tasks.data ?? [], today);
@@ -129,7 +131,8 @@ function WorkspaceLayout({
             {page === "home" && (
               <TodayView
                 data={data}
-                assistant={assistant}
+                assistant={connection.engine}
+                onOpenSettings={() => go({ page: "settings" })}
                 workspaceId={workspace.id}
                 onOpen={(target) => go({ page: target })}
                 onOpenTimetable={() =>
@@ -172,6 +175,7 @@ function WorkspaceLayout({
                 onAppearanceChange={setAppearance}
                 sidebar={sidebar}
                 onSidebarChange={setSidebar}
+                assistant={connection}
               />
             )}
           </div>

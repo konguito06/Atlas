@@ -28,8 +28,10 @@ const STATUS_TEXT: Record<AssistantStatus, string> = {
 interface AssistantPanelProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** What answers. Left out while ATLAS has no assistant connected. */
+  /** What answers. Left out while no assistant is connected. */
   engine?: AssistantEngine;
+  /** Goes to where the assistant is connected. */
+  onOpenSettings: () => void;
 }
 
 /**
@@ -40,9 +42,10 @@ export function AssistantPanel({
   open,
   onOpenChange,
   engine,
+  onOpenSettings,
 }: AssistantPanelProps) {
   // Kept here, outside the dialog, so closing it does not end the conversation.
-  const { messages, status, error, send, connected } =
+  const { messages, status, error, approval, send, connected } =
     useAssistantConversation(engine);
   const [draft, setDraft] = useState("");
   const end = useRef<HTMLDivElement>(null);
@@ -51,7 +54,7 @@ export function AssistantPanel({
   // Keep the newest words in view as they arrive.
   useEffect(() => {
     end.current?.scrollIntoView?.({ block: "end" });
-  }, [messages, error]);
+  }, [messages, error, approval]);
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -68,7 +71,11 @@ export function AssistantPanel({
           <div className="grid gap-1">
             <DialogTitle>ATLAS</DialogTitle>
             <DialogDescription role="status" className="text-xs">
-              {connected ? STATUS_TEXT[status] : "Not connected yet."}
+              {!connected
+                ? "Not connected yet."
+                : approval
+                  ? "Waiting for your answer."
+                  : STATUS_TEXT[status]}
             </DialogDescription>
           </div>
         </DialogHeader>
@@ -82,9 +89,20 @@ export function AssistantPanel({
             <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
               <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
                 {connected
-                  ? "Nothing asked yet."
-                  : "ATLAS does not have an assistant yet. When it does, this is where you will ask about your tasks, schedule and documents, and it will change them only with your approval."}
+                  ? "Ask what is on tomorrow, when your next exam is, or to add a task. It looks things up in your workspace, and asks before it changes anything."
+                  : "The assistant is not connected. It uses OpenAI with your own API key, which you add in Settings."}
               </p>
+              {!connected && (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    onOpenChange(false);
+                    onOpenSettings();
+                  }}
+                >
+                  Open Settings
+                </Button>
+              )}
             </div>
           )}
           <ol className="grid gap-4">
@@ -109,6 +127,27 @@ export function AssistantPanel({
             <p role="alert" className="mt-4 text-sm text-destructive">
               {error}
             </p>
+          )}
+          {approval && (
+            <fieldset className="mt-4 rounded-xl border border-border bg-background/60 p-3.5">
+              <legend className="sr-only">Approval</legend>
+              <p className="text-xs text-muted-foreground">
+                ATLAS wants to make a change
+              </p>
+              <p className="mt-1 text-sm font-medium">{approval.summary}</p>
+              <div className="mt-3 flex justify-end gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => approval.answer(false)}
+                >
+                  Don't allow
+                </Button>
+                <Button size="sm" onClick={() => approval.answer(true)}>
+                  Allow
+                </Button>
+              </div>
+            </fieldset>
           )}
           <div ref={end} />
         </div>

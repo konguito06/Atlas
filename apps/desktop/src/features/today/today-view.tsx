@@ -67,6 +67,8 @@ interface TodayViewProps {
   onOpenExams: () => void;
   /** Jumps to the weekly timetable inside Schedule. */
   onOpenTimetable: () => void;
+  /** Where the assistant is connected. */
+  onOpenSettings: () => void;
 }
 
 /** Home: what is happening today and this week, with the assistant's sphere. */
@@ -78,6 +80,7 @@ export function TodayView({
   onOpenDocument,
   onOpenExams,
   onOpenTimetable,
+  onOpenSettings,
 }: TodayViewProps) {
   const now = useNow(5_000);
   const today = toLocalDate(now);
@@ -197,6 +200,7 @@ export function TodayView({
         open={assistantOpen}
         onOpenChange={setAssistantOpen}
         engine={assistant}
+        onOpenSettings={onOpenSettings}
       />
 
       <section aria-label="Quick capture" className="mt-10">
