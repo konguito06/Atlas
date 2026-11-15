@@ -29,6 +29,9 @@ async function openDocument(seed: Parameters<typeof createFakeData>[0] = {}) {
   });
   renderApp(data);
   fireEvent.click(await screen.findByRole("button", { name: "Documents" }));
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Open Trip plan" }),
+  );
   await screen.findByLabelText("Document title");
   return data;
 }
@@ -236,13 +239,11 @@ test("a save that fails says so and can be tried again", async () => {
   expect(screen.getByRole("button", { name: "Try again" })).toBeDefined();
 });
 
-test("switching to another document saves the pending change first", async () => {
-  const data = await openDocument({
-    documents: [documentNamed("Trip plan"), documentNamed("Reading list")],
-  });
+test("going back to the library saves the pending change first", async () => {
+  const data = await openDocument();
 
   (await editor()).commands.insertContent("Pack sunscreen");
-  fireEvent.click(screen.getByRole("button", { name: "Reading list" }));
+  fireEvent.click(screen.getByText("Documents", { selector: "button" }));
 
   await waitFor(async () =>
     expect(await data.getDocumentContent("Trip plan")).toEqual({

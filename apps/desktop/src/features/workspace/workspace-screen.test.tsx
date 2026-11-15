@@ -39,7 +39,7 @@ test("the sidebar collapses to icons that keep their names, and expands again", 
   expect(sidebar().queryByText("Documents")).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Documents" }));
   expect(
-    await screen.findByRole("heading", { name: "No documents yet" }),
+    await screen.findByRole("heading", { name: "Documents" }),
   ).toBeDefined();
 
   fireEvent.click(screen.getByRole("button", { name: "Expand sidebar" }));

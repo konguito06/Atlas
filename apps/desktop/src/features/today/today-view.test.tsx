@@ -288,7 +288,7 @@ test("with no documents, says so and links to the documents page", async () => {
   expect(await screen.findByText("No documents yet.")).toBeDefined();
   fireEvent.click(screen.getByRole("button", { name: "All documents" }));
   expect(
-    await screen.findByRole("heading", { name: "No documents yet" }),
+    await screen.findByText("No documents yet. Create one to start writing."),
   ).toBeDefined();
 });
 
