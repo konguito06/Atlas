@@ -2,6 +2,8 @@
 export const APP_NAME = "ATLAS";
 
 export * from "./assistant";
+export * from "./assistant-engine";
+export * from "./assistant-tools";
 export * from "./auth";
 export * from "./data";
 export * from "./dates";
@@ -12,6 +14,7 @@ export * from "./library";
 export * from "./local/local-data";
 export * from "./local/migrations";
 export * from "./local/sql-database";
+export * from "./openai";
 export * from "./schedule";
 export * from "./search";
 export * from "./supabase";
