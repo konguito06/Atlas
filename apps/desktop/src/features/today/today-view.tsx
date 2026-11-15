@@ -98,18 +98,18 @@ export function TodayView({
   }
 
   return (
-    <section className="mx-auto w-full max-w-6xl px-10 pt-14 pb-12">
+    <section className="mx-auto w-full max-w-5xl px-12 pt-14 pb-16">
       <header className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
         <div>
           <p className="text-sm text-muted-foreground">{greeting(now)}</p>
-          <h1 className="mt-1 font-heading text-4xl leading-[1.1] tracking-tight">
+          <h1 className="mt-1.5 font-heading text-[2.75rem] leading-[1.05] tracking-tight">
             {weekdayFormat.format(now)},{" "}
             <span className="text-muted-foreground">
               {dateFormat.format(now)}
             </span>
           </h1>
         </div>
-        <p className="text-7xl leading-none font-extralight tracking-tight tabular-nums">
+        <p className="text-6xl leading-none font-extralight tracking-tight tabular-nums">
           <span className="sr-only">The time is </span>
           {minutesToTime(minutesOfDay(now))}
         </p>
@@ -121,186 +121,215 @@ export function TodayView({
         </p>
       )}
 
-      <div className="mt-8 grid gap-4 lg:grid-cols-12">
-        <Panel title="On today" className="lg:col-span-8">
-          {hasNoTimetable ? (
-            <div className="flex flex-wrap items-center gap-3">
-              <p className="text-sm text-muted-foreground">
-                You have no timetable yet.
-              </p>
-              <Button variant="outline" onClick={() => onOpen("timetable")}>
-                Set up a timetable
-              </Button>
-            </div>
-          ) : (
-            <p className="text-sm">{describeNextUp(entries, now)}</p>
-          )}
-
-          {span && (
-            <div className="mt-5">
-              <DayLine
-                entries={entries}
-                startHour={span.startHour}
-                endHour={span.endHour}
-                now={now}
-              />
-            </div>
-          )}
-
-          {entries.length > 0 && (
-            <ul
-              aria-label="Today's timetable"
-              className="mt-4 divide-y divide-border"
-            >
-              {entries.map(({ entry, timetableName, status }) => (
-                <li
-                  key={entry.id}
-                  className={cn(
-                    "flex items-baseline gap-4 py-2 text-sm",
-                    status === "past" && "text-muted-foreground",
-                  )}
-                >
-                  <span className="w-24 shrink-0 tabular-nums">
-                    {minutesToTime(entry.startMinute)}–
-                    {minutesToTime(entry.endMinute)}
-                  </span>
-                  <span className="min-w-0 flex-1 truncate font-medium">
-                    {entry.title}
-                  </span>
-                  {status === "now" && (
-                    <span className="shrink-0 font-medium text-signal">
-                      Now
-                    </span>
-                  )}
-                  <span className="shrink-0 text-muted-foreground">
-                    {[entry.location, severalTimetables && timetableName]
-                      .filter(Boolean)
-                      .join(", ")}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Panel>
-
-        <Panel title="At a glance" className="lg:col-span-4">
-          <div className="flex justify-center">
-            <DayRing
-              fraction={progress.fraction}
-              hasEntries={entries.length > 0}
-            />
-          </div>
-          <dl className="mt-5 grid grid-cols-2 gap-x-4 gap-y-4">
-            <Figure
-              label="On today"
-              value={entries.length}
-              note={
-                progress.totalMinutes > 0
-                  ? describeMinutes(progress.totalMinutes)
-                  : undefined
-              }
-            />
-            <Figure
-              label="Overdue"
-              value={soon.overdue.length}
-              alarming={soon.overdue.length > 0}
-            />
-            <Figure label="Due today" value={soon.today.length} />
-            <Figure label="Due this week" value={soon.thisWeek.length} />
-          </dl>
-        </Panel>
-
-        <Panel title="Due soon" className="lg:col-span-5">
-          {tasks.isSuccess && nothingDue ? (
-            <p className="text-sm text-muted-foreground">
-              Nothing is due in the next week.
-            </p>
-          ) : (
-            <ul aria-label="Due soon" className="-mt-2 divide-y divide-border">
-              {soon.overdue.map((task) => row(task, true))}
-              {soon.today.map((task) => row(task))}
-              {soon.thisWeek.map((task) => row(task))}
-            </ul>
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            className="mt-4"
-            onClick={() => onOpen("tasks")}
+      <div className="mt-12 grid gap-x-14 gap-y-12 lg:grid-cols-12">
+        <div className="grid content-start gap-12 lg:col-span-7">
+          <Block
+            title="On today"
+            action={
+              !hasNoTimetable && (
+                <BlockLink onClick={() => onOpen("timetable")}>
+                  Open timetable
+                </BlockLink>
+              )
+            }
           >
-            {tasks.data?.length ? "All tasks" : "Add a task"}
-          </Button>
-        </Panel>
+            {hasNoTimetable ? (
+              <div className="flex flex-wrap items-center gap-3">
+                <p className="text-sm text-muted-foreground">
+                  You have no timetable yet.
+                </p>
+                <Button variant="outline" onClick={() => onOpen("timetable")}>
+                  Set up a timetable
+                </Button>
+              </div>
+            ) : (
+              <p className="text-base">{describeNextUp(entries, now)}</p>
+            )}
 
-        <Panel title="This week" className="lg:col-span-4">
-          <WeekStrip days={week} />
-          <Button
-            variant="outline"
-            size="sm"
-            className="mt-4"
-            onClick={() => onOpen("timetable")}
-          >
-            Open timetable
-          </Button>
-        </Panel>
+            {span && (
+              <div className="mt-5">
+                <DayLine
+                  entries={entries}
+                  startHour={span.startHour}
+                  endHour={span.endHour}
+                  now={now}
+                />
+              </div>
+            )}
 
-        <Panel title="Documents" className="lg:col-span-3">
-          {documents.isSuccess && recentDocuments.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No documents yet.</p>
-          ) : (
-            <ul aria-label="Recent documents" className="-mx-2 -mt-1 grid">
-              {recentDocuments.map((document) => (
-                <li key={document.id}>
-                  <button
-                    type="button"
-                    onClick={() => onOpenDocument(document.id)}
+            {entries.length > 0 && (
+              <ul
+                aria-label="Today's timetable"
+                className="mt-4 divide-y divide-border"
+              >
+                {entries.map(({ entry, timetableName, status }) => (
+                  <li
+                    key={entry.id}
                     className={cn(
-                      "w-full truncate rounded-md px-2 py-1.5 text-left text-sm outline-none transition-colors hover:bg-accent focus-visible:ring-3 focus-visible:ring-ring/50",
-                      !document.title && "text-muted-foreground",
+                      "flex items-baseline gap-4 py-2.5 text-sm",
+                      status === "past" && "text-muted-foreground",
                     )}
                   >
-                    {document.title || "Untitled"}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            className="mt-4"
-            onClick={() => onOpen("documents")}
+                    <span className="w-24 shrink-0 tabular-nums">
+                      {minutesToTime(entry.startMinute)}–
+                      {minutesToTime(entry.endMinute)}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate font-medium">
+                      {entry.title}
+                    </span>
+                    {status === "now" && (
+                      <span className="flex shrink-0 items-center gap-1.5 font-medium">
+                        <span
+                          aria-hidden="true"
+                          className="size-1.5 rounded-full bg-signal"
+                        />
+                        Now
+                      </span>
+                    )}
+                    <span className="shrink-0 text-muted-foreground">
+                      {[entry.location, severalTimetables && timetableName]
+                        .filter(Boolean)
+                        .join(", ")}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Block>
+
+          <Block
+            title="Due soon"
+            action={
+              <BlockLink onClick={() => onOpen("tasks")}>
+                {tasks.data?.length ? "All tasks" : "Add a task"}
+              </BlockLink>
+            }
           >
-            All documents
-          </Button>
-        </Panel>
+            {tasks.isSuccess && nothingDue ? (
+              <p className="text-sm text-muted-foreground">
+                Nothing is due in the next week.
+              </p>
+            ) : (
+              <ul
+                aria-label="Due soon"
+                className="-mt-2 divide-y divide-border"
+              >
+                {soon.overdue.map((task) => row(task, true))}
+                {soon.today.map((task) => row(task))}
+                {soon.thisWeek.map((task) => row(task))}
+              </ul>
+            )}
+          </Block>
+        </div>
+
+        <div className="grid content-start gap-12 lg:col-span-5">
+          <Block title="At a glance">
+            <div className="flex flex-wrap items-center gap-x-8 gap-y-5">
+              <DayRing
+                fraction={progress.fraction}
+                hasEntries={entries.length > 0}
+              />
+              <dl className="grid flex-1 grid-cols-2 gap-x-6 gap-y-4">
+                <Figure
+                  label="On today"
+                  value={entries.length}
+                  note={
+                    progress.totalMinutes > 0
+                      ? describeMinutes(progress.totalMinutes)
+                      : undefined
+                  }
+                />
+                <Figure
+                  label="Overdue"
+                  value={soon.overdue.length}
+                  alarming={soon.overdue.length > 0}
+                />
+                <Figure label="Due today" value={soon.today.length} />
+                <Figure label="Due this week" value={soon.thisWeek.length} />
+              </dl>
+            </div>
+          </Block>
+
+          <Block title="This week">
+            <WeekStrip days={week} />
+          </Block>
+
+          <Block
+            title="Documents"
+            action={
+              <BlockLink onClick={() => onOpen("documents")}>
+                All documents
+              </BlockLink>
+            }
+          >
+            {documents.isSuccess && recentDocuments.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No documents yet.</p>
+            ) : (
+              <ul aria-label="Recent documents" className="-mx-2 -mt-1.5 grid">
+                {recentDocuments.map((document) => (
+                  <li key={document.id}>
+                    <button
+                      type="button"
+                      onClick={() => onOpenDocument(document.id)}
+                      className={cn(
+                        "w-full truncate rounded-md px-2 py-1.5 text-left text-sm outline-none transition-colors hover:bg-foreground/6 focus-visible:ring-3 focus-visible:ring-ring/50",
+                        !document.title && "text-muted-foreground",
+                      )}
+                    >
+                      {document.title || "Untitled"}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Block>
+        </div>
       </div>
     </section>
   );
 }
 
-function Panel({
+/**
+ * One part of the overview. Parts are set apart by a heading on a hairline
+ * and by space, not by boxes.
+ */
+function Block({
   title,
-  className,
+  action,
   children,
 }: {
   title: string;
-  className?: string;
+  /** A quiet link to the page with the full picture. */
+  action?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
-    <section
-      aria-label={title}
-      className={cn(
-        "rounded-2xl border border-border bg-card/60 p-5",
-        className,
-      )}
-    >
-      <h2 className="mb-4 text-sm font-medium text-muted-foreground">
-        {title}
-      </h2>
+    <section aria-label={title}>
+      <div className="mb-4 flex min-h-7 items-center justify-between gap-4 border-b border-border pb-2">
+        <h2 className="text-sm font-medium">{title}</h2>
+        {action}
+      </div>
       {children}
     </section>
+  );
+}
+
+function BlockLink({
+  onClick,
+  children,
+}: {
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <Button
+      variant="link"
+      size="sm"
+      className="h-auto px-0 font-normal"
+      onClick={onClick}
+    >
+      {children}
+    </Button>
   );
 }
 

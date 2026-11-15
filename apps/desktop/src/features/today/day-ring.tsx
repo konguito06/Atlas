@@ -1,5 +1,5 @@
-const SIZE = 132;
-const STROKE = 9;
+const SIZE = 116;
+const STROKE = 7;
 const RADIUS = (SIZE - STROKE) / 2;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
@@ -37,7 +37,7 @@ export function DayRing({
           r={RADIUS}
           fill="none"
           strokeWidth={STROKE}
-          className="stroke-muted"
+          className="stroke-foreground/8"
         />
         {hasEntries && (
           <circle
@@ -49,7 +49,7 @@ export function DayRing({
             strokeLinecap="round"
             strokeDasharray={CIRCUMFERENCE}
             strokeDashoffset={CIRCUMFERENCE * (1 - fraction)}
-            className="stroke-primary transition-[stroke-dashoffset] duration-700 motion-reduce:transition-none"
+            className="stroke-primary transition-[stroke-dashoffset] duration-700 ease-atlas motion-reduce:transition-none"
           />
         )}
       </svg>

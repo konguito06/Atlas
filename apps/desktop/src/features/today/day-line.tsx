@@ -24,12 +24,20 @@ export function DayLine({ entries, startHour, endHour, now }: DayLineProps) {
     { length: endHour - startHour + 1 },
     (_, index) => startHour + index,
   );
+  // On a long day every hour will not fit, so name every other one (and
+  // always the last).
+  const step = hours.length > 8 ? 2 : 1;
+  const labelled = hours.filter(
+    (_, index) =>
+      index === hours.length - 1 ||
+      (index % step === 0 && index < hours.length - step),
+  );
   const minute = minutesOfDay(now);
   const nowIsOnTheLine = minute >= firstMinute && minute <= endHour * 60;
 
   return (
     <div aria-hidden="true" className="select-none">
-      <div className="relative h-14 rounded-xl bg-muted">
+      <div className="relative h-12 rounded-lg bg-foreground/6">
         {hours.slice(1, -1).map((hour) => (
           <span
             key={hour}
@@ -42,7 +50,7 @@ export function DayLine({ entries, startHour, endHour, now }: DayLineProps) {
           <div
             key={entry.id}
             className={cn(
-              "absolute inset-y-1.5 flex items-center overflow-hidden rounded-lg border px-2 text-xs font-medium",
+              "absolute inset-y-1 flex items-center overflow-hidden rounded-md border px-2 text-xs font-medium",
               ENTRY_COLORS[entry.color].block,
               status === "past" && "opacity-45",
             )}
@@ -66,13 +74,13 @@ export function DayLine({ entries, startHour, endHour, now }: DayLineProps) {
       </div>
 
       <div className="relative mt-2 h-4 text-xs text-muted-foreground tabular-nums">
-        {hours.map((hour, index) => (
+        {labelled.map((hour, index) => (
           <span
             key={hour}
             className={cn(
               "absolute -translate-x-1/2",
               index === 0 && "translate-x-0",
-              index === hours.length - 1 && "-translate-x-full",
+              index === labelled.length - 1 && "-translate-x-full",
             )}
             style={{ left: position(hour * 60) }}
           >
