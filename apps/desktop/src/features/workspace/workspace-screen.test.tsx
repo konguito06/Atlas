@@ -6,7 +6,8 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const sidebar = () => within(screen.getByRole("navigation", { name: "Pages" }));
+const sidebar = () =>
+  within(screen.getByRole("navigation", { name: "Sections" }));
 const theme = () => document.documentElement.dataset.theme;
 
 function currentPage() {
@@ -57,11 +58,11 @@ test("a collapsed sidebar is still collapsed the next time the app opens", async
 
 test("Command with a number or a comma goes to that page", async () => {
   renderApp(createFakeData());
-  await screen.findByRole("button", { name: "Today" });
+  await screen.findByRole("button", { name: "Home" });
 
-  fireEvent.keyDown(window, { key: "2", metaKey: true });
+  fireEvent.keyDown(window, { key: "3", metaKey: true });
   expect(await screen.findByRole("heading", { name: "Tasks" })).toBeDefined();
-  expect(currentPage()).toBe("Tasks");
+  expect(currentPage()).toBe("Tasks & Exams");
 
   fireEvent.keyDown(window, { key: ",", metaKey: true });
   expect(
@@ -71,11 +72,11 @@ test("Command with a number or a comma goes to that page", async () => {
 
 test("a number typed without Command goes nowhere", async () => {
   renderApp(createFakeData());
-  await screen.findByRole("button", { name: "Today" });
+  await screen.findByRole("button", { name: "Home" });
 
   fireEvent.keyDown(window, { key: "2" });
 
-  expect(currentPage()).toBe("Today");
+  expect(currentPage()).toBe("Home");
 });
 
 test("the appearance can be set to dark or light, and is remembered", async () => {
@@ -107,7 +108,7 @@ test("a chosen appearance wins over the Mac's", async () => {
   localStorage.setItem("atlas.appearance", "light");
 
   renderApp(createFakeData());
-  await screen.findByRole("button", { name: "Today" });
+  await screen.findByRole("button", { name: "Home" });
 
   expect(theme()).toBe("light");
 });
@@ -121,13 +122,14 @@ test("the sidebar can be made compact from Settings", async () => {
   expect(screen.getByRole("button", { name: "Expand sidebar" })).toBeDefined();
 });
 
-test("the assistant page says there is no assistant yet and offers nothing to type into", async () => {
+test("the four sections are Home, Documents, Tasks & Exams and Schedule, in that order", async () => {
   renderApp(createFakeData());
+  await screen.findByRole("button", { name: "Home" });
 
-  fireEvent.click(await screen.findByRole("button", { name: "Assistant" }));
-
+  const [sections] = sidebar().getAllByRole("list");
   expect(
-    await screen.findByText("ATLAS does not have an assistant yet."),
-  ).toBeDefined();
-  expect(screen.queryByRole("textbox")).toBeNull();
+    within(sections as HTMLElement)
+      .getAllByRole("button")
+      .map((button) => button.textContent),
+  ).toEqual(["Home", "Documents", "Tasks & Exams", "Schedule"]);
 });

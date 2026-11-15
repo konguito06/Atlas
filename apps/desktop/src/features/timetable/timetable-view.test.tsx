@@ -32,7 +32,7 @@ async function openTimetable(
   seed: { timetables?: Timetable[]; entries?: TimetableEntry[] } = {},
 ) {
   renderApp(createFakeData(seed));
-  fireEvent.click(await screen.findByRole("button", { name: "Timetable" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Schedule" }));
 }
 
 function type(label: string, value: string) {

@@ -2,22 +2,20 @@ import { APP_NAME } from "@atlas/core";
 import {
   CalendarDays,
   Files,
-  LayoutDashboard,
+  House,
+  ListChecks,
   type LucideIcon,
   PanelLeft,
   Settings,
-  Sparkles,
-  SquareCheck,
 } from "lucide-react";
 import { Tooltip, TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 export const PAGES = [
-  "today",
-  "tasks",
-  "timetable",
+  "home",
   "documents",
-  "assistant",
+  "tasks",
+  "schedule",
   "settings",
 ] as const;
 export type Page = (typeof PAGES)[number];
@@ -33,21 +31,21 @@ interface Destination {
   key: string;
 }
 
-const WORKSPACE: Destination[] = [
-  { page: "today", label: "Today", icon: LayoutDashboard, key: "1" },
-  { page: "tasks", label: "Tasks", icon: SquareCheck, key: "2" },
-  { page: "timetable", label: "Timetable", icon: CalendarDays, key: "3" },
-  { page: "documents", label: "Documents", icon: Files, key: "4" },
+// The four sections of ATLAS, in the order they are always shown.
+const SECTIONS: Destination[] = [
+  { page: "home", label: "Home", icon: House, key: "1" },
+  { page: "documents", label: "Documents", icon: Files, key: "2" },
+  { page: "tasks", label: "Tasks & Exams", icon: ListChecks, key: "3" },
+  { page: "schedule", label: "Schedule", icon: CalendarDays, key: "4" },
 ];
 
 const APP: Destination[] = [
-  { page: "assistant", label: "Assistant", icon: Sparkles, key: "5" },
   { page: "settings", label: "Settings", icon: Settings, key: "," },
 ];
 
 /** The page a Command-key shortcut leads to, if it is one. */
 export function pageForShortcut(key: string): Page | undefined {
-  return [...WORKSPACE, ...APP].find((destination) => destination.key === key)
+  return [...SECTIONS, ...APP].find((destination) => destination.key === key)
     ?.page;
 }
 
@@ -157,10 +155,10 @@ export function Sidebar({
         </p>
 
         <nav
-          aria-label="Pages"
+          aria-label="Sections"
           className="flex min-h-0 flex-1 flex-col overflow-y-auto px-3 pb-3"
         >
-          <ul className="grid gap-0.5">{WORKSPACE.map(item)}</ul>
+          <ul className="grid gap-0.5">{SECTIONS.map(item)}</ul>
           <ul className="mt-auto grid gap-0.5 pt-4">{APP.map(item)}</ul>
         </nav>
 

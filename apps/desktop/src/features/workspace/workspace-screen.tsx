@@ -8,7 +8,6 @@ import {
 } from "@atlas/core";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { AssistantView } from "@/features/assistant/assistant-view";
 import { DocumentsView } from "@/features/documents/documents-view";
 import { SettingsView } from "@/features/settings/settings-view";
 import { TasksView } from "@/features/tasks/tasks-view";
@@ -48,7 +47,7 @@ function WorkspaceLayout({
   data: AtlasData;
   workspace: Workspace;
 }) {
-  const [page, setPage] = useState<Page>("today");
+  const [page, setPage] = useState<Page>("home");
   // Set when a document is opened from another page, so Documents shows it.
   const [documentToOpen, setDocumentToOpen] = useState<string>();
   const [appearance, setAppearance] = useAppearance();
@@ -61,7 +60,7 @@ function WorkspaceLayout({
   const today = toLocalDate(useNow());
   const due = groupTasks(tasks.data ?? [], today);
 
-  // Command with a number goes to a page; Command-comma opens Settings.
+  // Command with a number goes to a section; Command-comma opens Settings.
   useEffect(() => {
     function handleKey(event: KeyboardEvent) {
       if (!event.metaKey || event.altKey || event.ctrlKey || event.shiftKey) {
@@ -97,7 +96,7 @@ function WorkspaceLayout({
         <main className="h-full overflow-y-auto">
           {/* Keyed by page, so each page settles in as it opens. */}
           <div key={page} className="atlas-enter h-full">
-            {page === "today" && (
+            {page === "home" && (
               <TodayView
                 data={data}
                 workspaceId={workspace.id}
@@ -111,7 +110,7 @@ function WorkspaceLayout({
             {page === "tasks" && (
               <TasksView data={data} workspaceId={workspace.id} />
             )}
-            {page === "timetable" && (
+            {page === "schedule" && (
               <TimetableView data={data} workspaceId={workspace.id} />
             )}
             {page === "documents" && (
@@ -121,7 +120,6 @@ function WorkspaceLayout({
                 initialDocumentId={documentToOpen}
               />
             )}
-            {page === "assistant" && <AssistantView />}
             {page === "settings" && (
               <SettingsView
                 appearance={appearance}

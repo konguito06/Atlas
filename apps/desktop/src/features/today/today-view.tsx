@@ -39,7 +39,7 @@ interface TodayViewProps {
   data: AtlasData;
   workspaceId: string;
   /** Jumps to the page where the full list lives. */
-  onOpen: (page: "tasks" | "timetable" | "documents") => void;
+  onOpen: (page: "tasks" | "schedule" | "documents") => void;
   onOpenDocument: (documentId: string) => void;
 }
 
@@ -127,8 +127,8 @@ export function TodayView({
             title="On today"
             action={
               !hasNoTimetable && (
-                <BlockLink onClick={() => onOpen("timetable")}>
-                  Open timetable
+                <BlockLink onClick={() => onOpen("schedule")}>
+                  Open schedule
                 </BlockLink>
               )
             }
@@ -138,7 +138,7 @@ export function TodayView({
                 <p className="text-sm text-muted-foreground">
                   You have no timetable yet.
                 </p>
-                <Button variant="outline" onClick={() => onOpen("timetable")}>
+                <Button variant="outline" onClick={() => onOpen("schedule")}>
                   Set up a timetable
                 </Button>
               </div>

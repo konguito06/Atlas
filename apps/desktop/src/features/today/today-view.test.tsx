@@ -63,7 +63,7 @@ test("opens on today, with the date as the heading", async () => {
     await screen.findByRole("heading", { name: "Friday, 13 November" }),
   ).toBeDefined();
   expect(
-    screen.getByRole("button", { name: "Today" }).getAttribute("aria-current"),
+    screen.getByRole("button", { name: "Home" }).getAttribute("aria-current"),
   ).toBe("page");
 });
 
@@ -170,7 +170,7 @@ test("the sidebar counts tasks that are due today or overdue", async () => {
 
   expect(
     await screen.findByRole("button", {
-      name: "Tasks, 2 due today or overdue",
+      name: "Tasks & Exams, 2 due today or overdue",
     }),
   ).toBeDefined();
 });
