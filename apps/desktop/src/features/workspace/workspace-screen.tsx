@@ -7,23 +7,19 @@ import {
   useWorkspaces,
   type Workspace,
 } from "@atlas/core";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { CommandPalette } from "@/features/command/command-palette";
 import { DocumentsView } from "@/features/documents/documents-view";
-import {
-  type ScheduleArea,
-  ScheduleView,
-} from "@/features/schedule/schedule-view";
+import { ScheduleView } from "@/features/schedule/schedule-view";
 import { SettingsView } from "@/features/settings/settings-view";
-import {
-  type TasksArea,
-  TasksExamsView,
-} from "@/features/tasks/tasks-exams-view";
+import { TasksExamsView } from "@/features/tasks/tasks-exams-view";
 import { TodayView } from "@/features/today/today-view";
 import { useAppearance } from "@/lib/appearance";
 import { usePreference } from "@/lib/preferences";
 import { useNow } from "@/lib/use-now";
-import { type Page, pageForShortcut, SIDEBAR_MODES, Sidebar } from "./sidebar";
+import type { Destination } from "./destination";
+import { pageForShortcut, SIDEBAR_MODES, Sidebar } from "./sidebar";
 
 export function WorkspaceScreen({
   data,
@@ -64,12 +60,19 @@ function WorkspaceLayout({
   assistant?: AssistantEngine;
   workspace: Workspace;
 }) {
-  const [page, setPage] = useState<Page>("home");
-  // Set when a document is opened from another page, so Documents shows it.
-  const [documentToOpen, setDocumentToOpen] = useState<string>();
-  // Which area of Tasks & Exams a link from another page leads to.
-  const [tasksArea, setTasksArea] = useState<TasksArea>("tasks");
-  const [scheduleArea, setScheduleArea] = useState<ScheduleArea>("calendar");
+  // Where the app is, and how many moves it took to get there. The count
+  // makes a move to the section already on show start that section afresh.
+  const [place, setPlace] = useState<Destination & { visit: number }>({
+    page: "home",
+    visit: 0,
+  });
+  const go = useCallback(
+    (destination: Destination) =>
+      setPlace(({ visit }) => ({ ...destination, visit: visit + 1 })),
+    [],
+  );
+  const { page } = place;
+  const [searching, setSearching] = useState(false);
   const [appearance, setAppearance] = useAppearance();
   const [sidebar, setSidebar] = usePreference(
     "atlas.sidebar",
@@ -80,31 +83,34 @@ function WorkspaceLayout({
   const today = toLocalDate(useNow());
   const due = groupTasks(tasks.data ?? [], today);
 
-  // Command with a number goes to a section; Command-comma opens Settings.
+  // Command with a number goes to a section, Command-comma opens Settings,
+  // and Command-K opens search.
   useEffect(() => {
     function handleKey(event: KeyboardEvent) {
       if (!event.metaKey || event.altKey || event.ctrlKey || event.shiftKey) {
         return;
       }
+      if (event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setSearching((open) => !open);
+        return;
+      }
       const target = pageForShortcut(event.key);
       if (target) {
         event.preventDefault();
-        setPage(target);
+        go({ page: target });
       }
     }
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, []);
+  }, [go]);
 
   return (
     <div className="flex h-svh">
       <Sidebar
         page={page}
-        onNavigate={(target) => {
-          setTasksArea("tasks");
-          setScheduleArea("calendar");
-          setPage(target);
-        }}
+        onNavigate={(target) => go({ page: target })}
+        onSearch={() => setSearching(true)}
         mode={sidebar}
         onModeChange={setSidebar}
         dueCount={due.overdue.length + due.today.length}
@@ -118,51 +124,46 @@ function WorkspaceLayout({
           className="absolute inset-x-0 top-0 z-10 h-8"
         />
         <main className="h-full overflow-y-auto">
-          {/* Keyed by page, so each page settles in as it opens. */}
-          <div key={page} className="atlas-enter h-full">
+          {/* Keyed by visit, so each page settles in as it opens. */}
+          <div key={place.visit} className="atlas-enter h-full">
             {page === "home" && (
               <TodayView
                 data={data}
                 assistant={assistant}
                 workspaceId={workspace.id}
-                onOpen={(target) => {
-                  setTasksArea("tasks");
-                  setScheduleArea("calendar");
-                  setPage(target);
-                }}
-                onOpenTimetable={() => {
-                  setScheduleArea("timetable");
-                  setPage("schedule");
-                }}
-                onOpenExams={() => {
-                  setTasksArea("exams");
-                  setPage("tasks");
-                }}
-                onOpenDocument={(documentId) => {
-                  setDocumentToOpen(documentId);
-                  setPage("documents");
-                }}
+                onOpen={(target) => go({ page: target })}
+                onOpenTimetable={() =>
+                  go({ page: "schedule", scheduleArea: "timetable" })
+                }
+                onOpenExams={() => go({ page: "tasks", tasksArea: "exams" })}
+                onOpenDocument={(documentId) =>
+                  go({ page: "documents", documentId })
+                }
               />
             )}
             {page === "tasks" && (
               <TasksExamsView
                 data={data}
                 workspaceId={workspace.id}
-                initialArea={tasksArea}
+                initialArea={place.tasksArea}
+                initialTaskId={place.taskId}
+                initialExamId={place.examId}
               />
             )}
             {page === "schedule" && (
               <ScheduleView
                 data={data}
                 workspaceId={workspace.id}
-                initialArea={scheduleArea}
+                initialArea={place.scheduleArea}
+                initialDate={place.date}
+                initialEventId={place.eventId}
               />
             )}
             {page === "documents" && (
               <DocumentsView
                 data={data}
                 workspaceId={workspace.id}
-                initialDocumentId={documentToOpen}
+                initialDocumentId={place.documentId}
               />
             )}
             {page === "settings" && (
@@ -176,6 +177,14 @@ function WorkspaceLayout({
           </div>
         </main>
       </div>
+
+      <CommandPalette
+        data={data}
+        workspaceId={workspace.id}
+        open={searching}
+        onOpenChange={setSearching}
+        onGo={go}
+      />
     </div>
   );
 }

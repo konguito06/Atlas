@@ -18,11 +18,16 @@ export function ScheduleView({
   data,
   workspaceId,
   initialArea = "calendar",
+  initialDate,
+  initialEventId,
 }: {
   data: AtlasData;
   workspaceId: string;
   /** The area to show first, when arriving from a link to it. */
   initialArea?: ScheduleArea;
+  /** A date to show, and an event to open, when arriving from search. */
+  initialDate?: string;
+  initialEventId?: string;
 }) {
   const [area, setArea] = useState(initialArea);
 
@@ -37,7 +42,12 @@ export function ScheduleView({
         />
       </div>
       {area === "calendar" && (
-        <CalendarView data={data} workspaceId={workspaceId} />
+        <CalendarView
+          data={data}
+          workspaceId={workspaceId}
+          initialDate={initialDate}
+          initialEventId={initialEventId}
+        />
       )}
       {area === "timetable" && (
         <TimetableView data={data} workspaceId={workspaceId} />

@@ -6,6 +6,7 @@ import {
   ListChecks,
   type LucideIcon,
   PanelLeft,
+  Search,
   Settings,
 } from "lucide-react";
 import { Tooltip, TooltipProvider } from "@/components/ui/tooltip";
@@ -23,7 +24,7 @@ export type Page = (typeof PAGES)[number];
 export const SIDEBAR_MODES = ["expanded", "compact"] as const;
 export type SidebarMode = (typeof SIDEBAR_MODES)[number];
 
-interface Destination {
+interface Section {
   page: Page;
   label: string;
   icon: LucideIcon;
@@ -32,14 +33,14 @@ interface Destination {
 }
 
 // The four sections of ATLAS, in the order they are always shown.
-const SECTIONS: Destination[] = [
+export const SECTIONS: Section[] = [
   { page: "home", label: "Home", icon: House, key: "1" },
   { page: "documents", label: "Documents", icon: Files, key: "2" },
   { page: "tasks", label: "Tasks & Exams", icon: ListChecks, key: "3" },
   { page: "schedule", label: "Schedule", icon: CalendarDays, key: "4" },
 ];
 
-const APP: Destination[] = [
+const APP: Section[] = [
   { page: "settings", label: "Settings", icon: Settings, key: "," },
 ];
 
@@ -52,6 +53,8 @@ export function pageForShortcut(key: string): Page | undefined {
 interface SidebarProps {
   page: Page;
   onNavigate: (page: Page) => void;
+  /** Opens search and commands. */
+  onSearch: () => void;
   mode: SidebarMode;
   onModeChange: (mode: SidebarMode) => void;
   /** Tasks due today or overdue, shown against Tasks. */
@@ -66,6 +69,7 @@ interface SidebarProps {
 export function Sidebar({
   page,
   onNavigate,
+  onSearch,
   mode,
   onModeChange,
   dueCount,
@@ -73,7 +77,7 @@ export function Sidebar({
 }: SidebarProps) {
   const compact = mode === "compact";
 
-  function item({ page: target, label, icon: Icon, key }: Destination) {
+  function item({ page: target, label, icon: Icon, key }: Section) {
     const count = target === "tasks" ? dueCount : 0;
     const current = page === target;
     return (
@@ -153,6 +157,42 @@ export function Sidebar({
         >
           {APP_NAME}
         </p>
+
+        <div className="px-3 pb-2">
+          <Tooltip
+            label={
+              compact && (
+                <>
+                  Search
+                  <kbd className="font-sans opacity-60">⌘K</kbd>
+                </>
+              )
+            }
+          >
+            <button
+              type="button"
+              aria-label="Search"
+              aria-keyshortcuts="Meta+K"
+              onClick={onSearch}
+              className={cn(
+                "flex h-8 w-full items-center gap-3 rounded-lg border border-sidebar-border text-sm text-sidebar-foreground/60 outline-none transition-colors duration-150 select-none hover:bg-foreground/6 hover:text-sidebar-foreground focus-visible:ring-3 focus-visible:ring-ring/50",
+                compact ? "justify-center" : "px-2.5",
+              )}
+            >
+              <Search
+                aria-hidden="true"
+                strokeWidth={1.75}
+                className="size-4 shrink-0"
+              />
+              {!compact && (
+                <>
+                  <span className="flex-1 text-left">Search</span>
+                  <kbd className="font-sans text-xs opacity-70">⌘K</kbd>
+                </>
+              )}
+            </button>
+          </Tooltip>
+        </div>
 
         <nav
           aria-label="Sections"

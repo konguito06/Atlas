@@ -20,14 +20,17 @@ import { ExamDialog } from "./exam-dialog";
 export function ExamsView({
   data,
   workspaceId,
+  initialExamId,
 }: {
   data: AtlasData;
   workspaceId: string;
+  /** An exam to open straight away, when arriving from search. */
+  initialExamId?: string;
 }) {
   const exams = useExams(data, workspaceId);
   const tasks = useTasks(data, workspaceId);
   // "new" while adding one; otherwise the id of the exam that is open.
-  const [open, setOpen] = useState<string>();
+  const [open, setOpen] = useState(initialExamId);
   const today = toLocalDate(useNow());
   const { upcoming, past } = splitExams(exams.data ?? [], today);
   const openExam = exams.data?.find((exam) => exam.id === open);

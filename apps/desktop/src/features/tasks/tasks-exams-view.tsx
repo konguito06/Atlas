@@ -16,14 +16,21 @@ export type TasksArea = (typeof AREAS)[number]["value"];
 export function TasksExamsView({
   data,
   workspaceId,
-  initialArea = "tasks",
+  initialArea,
+  initialTaskId,
+  initialExamId,
 }: {
   data: AtlasData;
   workspaceId: string;
   /** The area to show first, when arriving from a link to it. */
   initialArea?: TasksArea;
+  /** A task or an exam to open straight away, when arriving from search. */
+  initialTaskId?: string;
+  initialExamId?: string;
 }) {
-  const [area, setArea] = useState(initialArea);
+  const [area, setArea] = useState<TasksArea>(
+    initialArea ?? (initialExamId ? "exams" : "tasks"),
+  );
 
   return (
     <>
@@ -35,8 +42,20 @@ export function TasksExamsView({
           onChange={setArea}
         />
       </div>
-      {area === "tasks" && <TasksView data={data} workspaceId={workspaceId} />}
-      {area === "exams" && <ExamsView data={data} workspaceId={workspaceId} />}
+      {area === "tasks" && (
+        <TasksView
+          data={data}
+          workspaceId={workspaceId}
+          initialTaskId={initialTaskId}
+        />
+      )}
+      {area === "exams" && (
+        <ExamsView
+          data={data}
+          workspaceId={workspaceId}
+          initialExamId={initialExamId}
+        />
+      )}
       {area === "deadlines" && (
         <DeadlinesView data={data} workspaceId={workspaceId} />
       )}

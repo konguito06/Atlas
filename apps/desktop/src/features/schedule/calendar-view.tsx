@@ -39,9 +39,15 @@ const VIEW_OPTIONS = [
 export function CalendarView({
   data,
   workspaceId,
+  initialDate,
+  initialEventId,
 }: {
   data: AtlasData;
   workspaceId: string;
+  /** The date to open on, instead of today. */
+  initialDate?: string;
+  /** An event to open straight away, when arriving from search. */
+  initialEventId?: string;
 }) {
   const now = useNow();
   const today = toLocalDate(now);
@@ -51,10 +57,10 @@ export function CalendarView({
     "week",
   );
   // The date the view is opened on; the view shows the period around it.
-  const [date, setDate] = useState(today);
+  const [date, setDate] = useState(initialDate ?? today);
   // The event being added (where it starts) or edited (which one).
   const [adding, setAdding] = useState<EventStart>();
-  const [editingId, setEditingId] = useState<string>();
+  const [editingId, setEditingId] = useState(initialEventId);
 
   const timetables = useTimetables(data, workspaceId);
   const allEntries = useAllTimetableEntries(data, timetables.data ?? []);

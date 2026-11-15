@@ -33,9 +33,12 @@ const NO_PROJECT = "none";
 export function TasksView({
   data,
   workspaceId,
+  initialTaskId,
 }: {
   data: AtlasData;
   workspaceId: string;
+  /** A task to open straight away, when arriving from search. */
+  initialTaskId?: string;
 }) {
   const filterId = useId();
   const tasks = useTasks(data, workspaceId);
@@ -49,7 +52,7 @@ export function TasksView({
   const [filter, setFilter] = useState(ALL);
   const [newTitle, setNewTitle] = useState("");
   const [addError, setAddError] = useState<string>();
-  const [openTaskId, setOpenTaskId] = useState<string>();
+  const [openTaskId, setOpenTaskId] = useState(initialTaskId);
   const [projectDialog, setProjectDialog] = useState<"create" | "edit">();
   const [showDone, setShowDone] = useState(false);
 
