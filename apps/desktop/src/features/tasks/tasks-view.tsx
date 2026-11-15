@@ -10,6 +10,7 @@ import {
   useCreateProject,
   useCreateTask,
   useDeleteProject,
+  useExams,
   useProjects,
   useTasks,
   useUpdateProject,
@@ -39,6 +40,7 @@ export function TasksView({
   const filterId = useId();
   const tasks = useTasks(data, workspaceId);
   const projects = useProjects(data, workspaceId);
+  const exams = useExams(data, workspaceId);
   const createTask = useCreateTask(data, workspaceId);
   const updateTask = useUpdateTask(data, workspaceId);
   const createProject = useCreateProject(data, workspaceId);
@@ -130,7 +132,7 @@ export function TasksView({
   }
 
   return (
-    <section className="mx-auto w-full max-w-3xl px-12 pt-14 pb-16">
+    <section className="mx-auto w-full max-w-3xl px-12 pt-8 pb-16">
       <div className="flex flex-wrap items-end gap-2">
         <h1 className="mr-auto font-heading text-4xl tracking-tight">Tasks</h1>
         <label htmlFor={filterId} className="text-sm text-muted-foreground">
@@ -222,6 +224,7 @@ export function TasksView({
           task={openTask}
           tasks={allTasks}
           projects={allProjects}
+          exams={exams.data ?? []}
           onClose={() => setOpenTaskId(undefined)}
         />
       )}

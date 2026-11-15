@@ -1,6 +1,7 @@
 import {
   type AtlasData,
   EMPTY_TASK_DRAFT,
+  type Exam,
   PRIORITY_LABELS,
   type Project,
   STATUS_LABELS,
@@ -39,6 +40,8 @@ interface TaskDialogProps {
   /** Every task, to find this one's subtasks. */
   tasks: Task[];
   projects: Project[];
+  /** Exams the task can be linked to. The link is always optional. */
+  exams: Exam[];
   onClose: () => void;
 }
 
@@ -52,6 +55,7 @@ export function TaskDialog({
   task,
   tasks,
   projects,
+  exams,
   onClose,
 }: TaskDialogProps) {
   const ids = {
@@ -62,6 +66,7 @@ export function TaskDialog({
     priority: useId(),
     status: useId(),
     project: useId(),
+    exam: useId(),
   };
   const create = useCreateTask(data, workspaceId);
   const update = useUpdateTask(data, workspaceId);
@@ -73,6 +78,7 @@ export function TaskDialog({
   const [priority, setPriority] = useState<TaskPriority>(task.priority);
   const [status, setStatus] = useState<TaskStatus>(task.status);
   const [projectId, setProjectId] = useState(task.projectId ?? "");
+  const [examId, setExamId] = useState(task.examId ?? "");
   const [subtaskTitle, setSubtaskTitle] = useState("");
   const [error, setError] = useState<string>();
 
@@ -92,6 +98,7 @@ export function TaskDialog({
       dueDate: dueDate || null,
       dueTime: dueTime || null,
       projectId: projectId || null,
+      examId: examId || null,
       parentId: task.parentId,
     });
     if (!result.ok) {
@@ -226,6 +233,24 @@ export function TaskDialog({
               </NativeSelect>
             </div>
           </div>
+
+          {exams.length > 0 && (
+            <div className="grid gap-1.5">
+              <Label htmlFor={ids.exam}>For an exam (optional)</Label>
+              <NativeSelect
+                id={ids.exam}
+                value={examId}
+                onChange={(event) => setExamId(event.target.value)}
+              >
+                <option value="">No exam</option>
+                {exams.map((exam) => (
+                  <option key={exam.id} value={exam.id}>
+                    {exam.subject}
+                  </option>
+                ))}
+              </NativeSelect>
+            </div>
+          )}
 
           <div className="grid gap-1.5">
             <p className="text-sm leading-none font-medium">Subtasks</p>

@@ -4,13 +4,16 @@ import {
   DISPLAY_LOCALE,
   dayProgress,
   daySpan,
+  describeCountdown,
   describeMinutes,
   describeNextUp,
   EMPTY_TASK_DRAFT,
+  formatLocalDate,
   greeting,
   minutesOfDay,
   minutesToTime,
   projectProgress,
+  splitExams,
   TASK_TITLE_MAX_LENGTH,
   type Task,
   tasksDueSoon,
@@ -20,6 +23,7 @@ import {
   useCreateDocument,
   useCreateTask,
   useDocuments,
+  useExams,
   useProjects,
   useTasks,
   useTimetables,
@@ -56,6 +60,8 @@ interface TodayViewProps {
   /** Jumps to the page where the full list lives. */
   onOpen: (page: "tasks" | "schedule" | "documents") => void;
   onOpenDocument: (documentId: string) => void;
+  /** Jumps to the exams area of Tasks & Exams. */
+  onOpenExams: () => void;
 }
 
 /** Home: what is happening today and this week, with the assistant's sphere. */
@@ -65,6 +71,7 @@ export function TodayView({
   workspaceId,
   onOpen,
   onOpenDocument,
+  onOpenExams,
 }: TodayViewProps) {
   const now = useNow(5_000);
   const today = toLocalDate(now);
@@ -74,6 +81,7 @@ export function TodayView({
   const documents = useDocuments(data, workspaceId);
   const update = useUpdateTask(data, workspaceId);
   const projects = useProjects(data, workspaceId);
+  const exams = useExams(data, workspaceId);
   const createTask = useCreateTask(data, workspaceId);
   const createDocument = useCreateDocument(data, workspaceId);
   const [assistantOpen, setAssistantOpen] = useState(false);
@@ -96,6 +104,7 @@ export function TodayView({
     soon.overdue.length + soon.today.length + soon.thisWeek.length === 0;
   const hasNoTimetable = timetables.isSuccess && timetables.data.length === 0;
   const severalTimetables = (timetables.data?.length ?? 0) > 1;
+  const nextExams = splitExams(exams.data ?? [], today).upcoming.slice(0, 3);
   const recentDocuments = documents.data?.slice(0, 4) ?? [];
   const activeProjects = projectProgress(
     projects.data ?? [],
@@ -107,6 +116,7 @@ export function TodayView({
     tasks.error ??
     documents.error ??
     projects.error ??
+    exams.error ??
     update.error ??
     createTask.error ??
     createDocument.error;
@@ -361,6 +371,36 @@ export function TodayView({
                 <Figure label="Due this week" value={soon.thisWeek.length} />
               </dl>
             </div>
+          </Block>
+
+          <Block
+            title="Exams"
+            action={<BlockLink onClick={onOpenExams}>All exams</BlockLink>}
+          >
+            {exams.isSuccess && nextExams.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No exams coming up.
+              </p>
+            ) : (
+              <ul aria-label="Upcoming exams" className="grid gap-2.5">
+                {nextExams.map((exam) => (
+                  <li
+                    key={exam.id}
+                    className="flex items-baseline gap-3 text-sm"
+                  >
+                    <span className="min-w-0 flex-1 truncate font-medium">
+                      {exam.subject}
+                    </span>
+                    <span className="shrink-0 text-muted-foreground tabular-nums">
+                      {formatLocalDate(exam.date, today)}
+                    </span>
+                    <span className="w-20 shrink-0 text-right tabular-nums">
+                      {describeCountdown(exam.date, today)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </Block>
 
           <Block title="This week">

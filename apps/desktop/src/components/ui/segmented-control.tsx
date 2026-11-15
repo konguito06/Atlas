@@ -32,7 +32,10 @@ function SegmentedControl<Value extends string>({
       {options.map(({ value: option, label: text, icon: Icon }) => (
         <label
           key={option}
-          className="flex h-7 items-center gap-1.5 rounded-md px-3 text-muted-foreground transition-[background-color,color,box-shadow] duration-150 select-none has-checked:bg-card has-checked:font-medium has-checked:text-foreground has-checked:shadow-sm has-focus-visible:ring-3 has-focus-visible:ring-ring/50"
+          className={cn(
+            "flex h-7 items-center gap-1.5 rounded-md px-3 text-muted-foreground transition-[background-color,color,box-shadow] duration-150 select-none has-focus-visible:ring-3 has-focus-visible:ring-ring/50",
+            option === value && "bg-card font-medium text-foreground shadow-sm",
+          )}
         >
           <input
             type="radio"

@@ -11,7 +11,10 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DocumentsView } from "@/features/documents/documents-view";
 import { SettingsView } from "@/features/settings/settings-view";
-import { TasksView } from "@/features/tasks/tasks-view";
+import {
+  type TasksArea,
+  TasksExamsView,
+} from "@/features/tasks/tasks-exams-view";
 import { TimetableView } from "@/features/timetable/timetable-view";
 import { TodayView } from "@/features/today/today-view";
 import { useAppearance } from "@/lib/appearance";
@@ -61,6 +64,8 @@ function WorkspaceLayout({
   const [page, setPage] = useState<Page>("home");
   // Set when a document is opened from another page, so Documents shows it.
   const [documentToOpen, setDocumentToOpen] = useState<string>();
+  // Which area of Tasks & Exams a link from another page leads to.
+  const [tasksArea, setTasksArea] = useState<TasksArea>("tasks");
   const [appearance, setAppearance] = useAppearance();
   const [sidebar, setSidebar] = usePreference(
     "atlas.sidebar",
@@ -91,7 +96,10 @@ function WorkspaceLayout({
     <div className="flex h-svh">
       <Sidebar
         page={page}
-        onNavigate={setPage}
+        onNavigate={(target) => {
+          setTasksArea("tasks");
+          setPage(target);
+        }}
         mode={sidebar}
         onModeChange={setSidebar}
         dueCount={due.overdue.length + due.today.length}
@@ -112,7 +120,14 @@ function WorkspaceLayout({
                 data={data}
                 assistant={assistant}
                 workspaceId={workspace.id}
-                onOpen={setPage}
+                onOpen={(target) => {
+                  setTasksArea("tasks");
+                  setPage(target);
+                }}
+                onOpenExams={() => {
+                  setTasksArea("exams");
+                  setPage("tasks");
+                }}
                 onOpenDocument={(documentId) => {
                   setDocumentToOpen(documentId);
                   setPage("documents");
@@ -120,7 +135,11 @@ function WorkspaceLayout({
               />
             )}
             {page === "tasks" && (
-              <TasksView data={data} workspaceId={workspace.id} />
+              <TasksExamsView
+                data={data}
+                workspaceId={workspace.id}
+                initialArea={tasksArea}
+              />
             )}
             {page === "schedule" && (
               <TimetableView data={data} workspaceId={workspace.id} />
